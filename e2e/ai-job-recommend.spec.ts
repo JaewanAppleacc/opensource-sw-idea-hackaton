@@ -18,7 +18,7 @@ test.describe('AI추천(일자리) 목록 화면 (전북 일자리 비교 에이
 
   test('로그인 전에는 안내 문구와 데모 로그인 버튼이 보인다', async ({ page }) => {
     await page.goto('/ai-job-recommend')
-    await expect(page.getByText('로그인하면 관심 생활권의 유사 일자리와 비교할 수 있습니다.')).toBeVisible()
+    await expect(page.getByText('로그인하면 관심 생활권의 비교 공고를 확인할 수 있습니다.')).toBeVisible()
     await expect(page.getByRole('button', { name: /데모 로그인/ })).toBeVisible()
   })
 

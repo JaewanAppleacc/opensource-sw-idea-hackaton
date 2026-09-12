@@ -25,7 +25,7 @@ function toApiClientError(reason: unknown): ApiClientError {
 /**
  * Default AI추천(일자리) landing experience (see TASK "고용24 AI추천 목록 내
  * 전북 일자리 비교 에이전트 통합"): a recommended-postings list using real
- * capital-area posting metadata, each with an inline "내 지역 유사 일자리
+ * capital-area posting metadata, each with an inline "내 지역 비교 공고
  * 보기" agent -- never a separate paste-and-analyze tool. The original
  * manual-paste flow still exists, unchanged, at /manual-analysis.
  */
@@ -107,7 +107,7 @@ export function AiJobRecommendPage() {
         </div>
 
         <p className="mt-4 text-sm leading-relaxed text-ink-500">
-          아래 수도권 채용공고 목록에서 관심 있는 공고의 <strong className="text-ink-700">내 지역 유사 일자리 보기</strong>를
+          아래 수도권 채용공고 목록에서 관심 있는 공고의 <strong className="text-ink-700">내 지역 비교 공고 보기</strong>를
           누르면, 전북 일자리 비교 에이전트가 직무·고용조건을 기준으로 비교 가능한 전북 공고를 찾아 같은 화면에서
           보여드려요. 추천은 기업 우수성 평가가 아닌 공고 간 비교 결과이며, 확인되지 않은 정보는 추정하지 않습니다.
         </p>

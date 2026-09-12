@@ -249,3 +249,64 @@ def test_api_analyze_by_id_rejects_extra_field(client, real_data):
         "/api/v1/postings/analyze-by-id", json={"posting_id": "TEST-MET-01", "unexpected_field": "x"}
     )
     assert response.status_code == 422
+
+
+# --- Dataset-description honesty (TASK "데모 매칭 표현 정직화" section 10) ---
+# The 1:1 pairing is a deterministic, pre-computed lookup by exact
+# occupation/employment_type match in collection order -- never a
+# similarity search or a human-curated "best fit" choice. The text shown
+# to users must say so, and must never *positively* claim to be the best,
+# most similar, or only alternative (explicitly *disclaiming* that, as the
+# current wording does, is exactly what is required -- so this checks for
+# the disclaimer's presence, not bare absence of words like "최적").
+
+# Never acceptable in this description under any wording, negated or not --
+# either a stray English leftover, or a phrase that could only ever be used
+# to overstate the match.
+_NEVER_ACCEPTABLE = ("curated", "검증된 유사", "AI가 찾은", "AI가 선택한")
+
+
+def test_real_dataset_description_never_uses_curated_or_ai_selection_language(real_data):
+    listing = real_postings.list_capital_area_postings()
+    matches = real_postings.find_home_region_matches("TEST-MET-01")
+    for description in (listing.dataset_description, matches.dataset_description):
+        for phrase in _NEVER_ACCEPTABLE:
+            assert phrase not in description, f"{phrase!r} found in dataset_description: {description!r}"
+
+
+def test_real_dataset_description_names_the_actual_pairing_criteria(real_data):
+    description = real_postings.find_home_region_matches("TEST-MET-01").dataset_description
+    # 정규직/생산직 등 실제 값이 아니라 "모집직종"/"고용형태"라는 기준 자체와
+    # "1:1"/"수집 순서" 같은 결정론적 연결 방식이 명시되는지 확인한다.
+    assert "모집직종" in description
+    assert "고용형태" in description
+    assert "1:1" in description
+    assert "수집 순서" in description
+
+
+def test_real_dataset_description_explicitly_disclaims_best_or_only_match(real_data):
+    description = real_postings.find_home_region_matches("TEST-MET-01").dataset_description
+    # Must explicitly disclaim being the best/most-similar/only alternative
+    # -- not merely omit a claim, but actively say it is not one.
+    assert "최적" in description and "아니" in description
+    assert "유일한 지역 대안" in description
+
+
+def test_api_dataset_description_never_uses_curated_or_ai_selection_language(client, real_data):
+    listing_body = client.get("/api/v1/postings/home-region-listing").json()
+    match_body = client.post(
+        "/api/v1/postings/home-region-matches", json={"metro_posting_id": "TEST-MET-01"}
+    ).json()
+    for description in (listing_body["dataset_description"], match_body["dataset_description"]):
+        for phrase in _NEVER_ACCEPTABLE:
+            assert phrase not in description
+
+
+def test_list_capital_area_postings_response_has_no_full_text_field(real_data):
+    # Schema-level guarantee (PostingListItem has no field that could carry
+    # private full text), asserted here so a future field addition to that
+    # model would be forced to justify itself against this test.
+    response = real_postings.list_capital_area_postings()
+    for item in response.postings:
+        assert not hasattr(item, "full_text")
+        assert not hasattr(item, "source_text")

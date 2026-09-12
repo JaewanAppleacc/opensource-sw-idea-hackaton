@@ -1,4 +1,4 @@
-import { CheckCircle2, MapPin, Link2 } from 'lucide-react'
+import { CheckCircle2, MapPin, Link2, ListFilter } from 'lucide-react'
 import type { MatchCandidate } from '../../lib/apiClient'
 import { matchReasonLabel } from '../../lib/displayLabels'
 
@@ -44,7 +44,22 @@ export function JeonbukCandidateList({
                   {isSelected && <CheckCircle2 size={20} aria-hidden="true" className="shrink-0 text-brand-blue" />}
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-1.5">
+                {/* 영역 A: 비교 대상으로 연결된 기준 -- 현재 실제로 후보
+                    연결에 사용한 정보만 표시한다 (모집직종, 고용형태). 담당
+                    업무·기술·급여 등은 연결에 쓰이지 않았으므로 여기 넣지
+                    않는다 (TASK "데모 매칭 표현 정직화" section 6). */}
+                <div className="mt-3 rounded-card bg-surface-muted p-2.5">
+                  <p className="flex items-center gap-1 text-[11px] font-semibold text-ink-500">
+                    <ListFilter size={11} aria-hidden="true" />
+                    비교 대상으로 연결된 기준
+                  </p>
+                  <ul className="mt-1 space-y-0.5 text-[11px] text-ink-700">
+                    <li>모집직종: {candidate.occupation}</li>
+                    <li>고용형태: {candidate.employment_type}</li>
+                  </ul>
+                </div>
+
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {candidate.matching_fields.map((field) => (
                     <span
                       key={field}

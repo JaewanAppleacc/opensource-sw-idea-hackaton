@@ -20,7 +20,7 @@ test.describe('지역 기반 커리어 의사결정 에이전트 - 실제 데이
     const cards = page.locator('li:has-text("수도권 공고")')
     await expect(cards.first()).toBeVisible({ timeout: 10000 })
     const firstCard = cards.first()
-    await firstCard.getByRole('button', { name: /내 지역 유사 일자리 보기/ }).click()
+    await firstCard.getByRole('button', { name: /내 지역 비교 공고 보기/ }).click()
     const candidateButton = firstCard.locator('ul > li button').first()
     await expect(candidateButton).toBeVisible({ timeout: 10000 })
     await candidateButton.click()
@@ -148,10 +148,55 @@ test.describe('지역 기반 커리어 의사결정 에이전트 - 실제 데이
     expect(body.error.code).toBe('private_data_unavailable')
   })
 
+  test('비교 대상으로 연결된 기준이 정직하게 표시되고 후보는 1건뿐이다 (TASK "데모 매칭 표현 정직화")', async ({
+    page,
+  }) => {
+    await page.goto('/ai-job-recommend')
+    await page.getByRole('button', { name: /데모 로그인/ }).click()
+    const cards = page.locator('li:has-text("수도권 공고")')
+    await expect(cards.first()).toBeVisible({ timeout: 10000 })
+    const firstCard = cards.first()
+    await firstCard.getByRole('button', { name: /내 지역 비교 공고 보기/ }).click()
+
+    // 5. 현재 전북 비교 공고 1건 -- 복수 후보 자동 추천이 아니다.
+    const candidateButtons = firstCard.locator('ul > li button')
+    await expect(candidateButtons.first()).toBeVisible({ timeout: 10000 })
+    await expect(candidateButtons).toHaveCount(1)
+
+    // 정직한 매칭 방식 안내문: 실제 데이터, 동일 모집직종·고용형태,
+    // 수집 순서에 따른 결정론적 1:1 연결, 가장 유사/유일한 대안이 아님.
+    const candidateSectionText = await firstCard.innerText()
+    expect(candidateSectionText).toContain('실제 수도권·전북 채용공고 10:10 표본')
+    expect(candidateSectionText).toContain('모집직종·고용형태')
+    expect(candidateSectionText).toContain('1:1')
+    expect(candidateSectionText).toContain('수집 순서')
+    expect(candidateSectionText).toContain('유일한 지역 대안이라는 의미는 아니며')
+
+    // 영역 A: 비교 대상으로 연결된 기준 -- 실제 연결에 쓰인 두 필드만 표시.
+    await expect(firstCard.getByText('비교 대상으로 연결된 기준')).toBeVisible()
+    await expect(firstCard.getByText(/모집직종: /)).toBeVisible()
+    await expect(firstCard.getByText(/고용형태: /)).toBeVisible()
+
+    // 과장된 매칭 주장은 어디에도 없다.
+    expect(candidateSectionText).not.toContain('curated')
+    expect(candidateSectionText).not.toContain('검증된 유사')
+    expect(candidateSectionText).not.toContain('AI가 찾은')
+    expect(candidateSectionText).not.toContain('AI가 선택한')
+
+    // 후보 선택 -> 영역 B: 공고 분석 결과가 선정 근거로 오인되지 않도록
+    // 명확히 구분된 캡션이 표시된다.
+    const candidateButton = candidateButtons.first()
+    await candidateButton.click()
+    await expect(firstCard.getByText('수정된 6개 비교축')).toBeVisible({ timeout: 10000 })
+    await expect(
+      firstCard.getByText('비교 대상으로 연결된 이후, 두 공고 원문을 분석해 확인한 내용입니다.'),
+    ).toBeVisible()
+  })
+
   test('로그인 후에는 내 관심 생활권 라벨이 카드 CTA에 반영된다', async ({ page }) => {
     await page.goto('/ai-job-recommend')
     await page.getByRole('button', { name: /데모 로그인/ }).click()
-    await expect(page.getByText(/내 지역 유사 일자리 보기/).first()).toBeVisible()
+    await expect(page.getByText(/내 지역 비교 공고 보기/).first()).toBeVisible()
     await expect(page.getByText('(전북특별자치도 기준)').first()).toBeVisible()
   })
 
@@ -206,7 +251,7 @@ test.describe('모바일 뷰포트', () => {
     await expect(cards.first()).toBeVisible({ timeout: 10000 })
 
     const firstCard = cards.first()
-    await firstCard.getByRole('button', { name: /내 지역 유사 일자리 보기/ }).click()
+    await firstCard.getByRole('button', { name: /내 지역 비교 공고 보기/ }).click()
     const candidateButton = firstCard.locator('ul > li button').first()
     await expect(candidateButton).toBeVisible({ timeout: 10000 })
     await candidateButton.click()

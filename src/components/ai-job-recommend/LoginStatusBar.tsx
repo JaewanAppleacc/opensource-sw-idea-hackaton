@@ -16,7 +16,7 @@ export function LoginStatusBar({ loggedIn, onLogin, onLogout }: LoginStatusBarPr
   if (!loggedIn) {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-ink-border bg-surface-muted p-4 text-sm">
-        <p className="text-ink-700">로그인하면 관심 생활권의 유사 일자리와 비교할 수 있습니다.</p>
+        <p className="text-ink-700">로그인하면 관심 생활권의 비교 공고를 확인할 수 있습니다.</p>
         <button
           type="button"
           onClick={onLogin}

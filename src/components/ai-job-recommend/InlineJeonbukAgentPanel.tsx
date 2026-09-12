@@ -138,7 +138,7 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
         className="flex w-full items-center justify-between gap-2 rounded-card border border-brand-blue/40 bg-tint-sky/20 px-4 py-2.5 text-left text-sm font-semibold text-brand-blue transition hover:bg-tint-sky/40"
       >
         <span className="flex items-center gap-1.5">
-          <Sparkles size={15} aria-hidden="true" />내 지역 유사 일자리 보기
+          <Sparkles size={15} aria-hidden="true" />내 지역 비교 공고 보기
           <span className="font-normal text-ink-500">({homeRegionLabel} 기준)</span>
         </span>
         <ChevronDown
@@ -210,7 +210,16 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
 
               {bothSucceeded && metroAxes && jeonbukAxes && (
                 <>
-                  <h4 className="text-sm font-bold text-ink-900">수정된 6개 비교축</h4>
+                  <div>
+                    <h4 className="text-sm font-bold text-ink-900">수정된 6개 비교축</h4>
+                    {/* 영역 B: 공고 분석 결과 -- 담당업무·기술 등에서 공통점이
+                        보이더라도 그것이 후보 선정 근거였다고 암시하지 않는다
+                        (연결 기준은 영역 A에서만 표시). */}
+                    <p className="mt-0.5 text-xs text-ink-400">
+                      비교 대상으로 연결된 이후, 두 공고 원문을 분석해 확인한 내용입니다. 후보를 선정한 기준이
+                      아닙니다.
+                    </p>
+                  </div>
                   <ComparisonAxesPanel
                     metroLabel="수도권 공고"
                     jeonbukLabel={jeonbukCardLabel}

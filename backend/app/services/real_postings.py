@@ -4,12 +4,28 @@ resolution for the inline Jeonbuk comparison agent.
 Kept entirely separate from `app.datasets.loader` / `app.services.matching`
 (the synthetic-fixture-oriented, occupation-fuzzy-match path used by the
 existing `/postings/match` endpoint) so nothing about that already-tested
-behavior changes. This module instead uses the real, curated 1:1 pairing
-already computed by the acquisition track
-(`data/intake/real_matched_pairs.jsonl`) -- more precise than re-deriving a
-match from an occupation string, and it can never accidentally return a
-posting from the wrong region because it only ever follows an explicit,
-pre-computed pair.
+behavior changes.
+
+**What this module's pairing actually is (be precise about this -- see
+TASK "데모 매칭 표현 정직화").** `data/intake/real_matched_pairs.jsonl` is
+produced once, offline, by `scripts/acquisition/pair_postings.py`: postings
+are grouped by an exact match on their recorded `occupation` and
+`employment_type` string values (no similarity scoring, no semantic
+comparison, no normalization/canonicalization step -- just Python
+dict-key equality on the two fields as collected), and within each group,
+jeonbuk and metro records are paired 1:1 in the order they appear in
+`data/intake/real_postings.jsonl` (i.e. collection order). This is a
+deterministic, pre-computed lookup table, not an automatic "find the most
+similar posting" engine -- there is no ranking, no scoring, and (in the
+current single-occupation MVP batch) no more than one jeonbuk candidate is
+ever returned for a given metro posting. It is not a claim that the
+returned posting is the most similar, best, or only local alternative --
+only that it shares the same recorded occupation and employment type and
+was next in the same collection batch. See `REAL_DATASET_DESCRIPTION`
+below for the exact wording surfaced to API responses, and
+`docs/architecture/CURRENT_SYSTEM_FLOW.md` for how this differs from what
+a real 고용24 integration (official `jobsCd`/`empTpCd`-based candidate
+retrieval) would look like.
 
 Every function here is read-only over `data/intake/**` (public, tracked)
 and `data/private/intake_raw/**` (gitignored, real posting text). Nothing
@@ -30,11 +46,16 @@ from .matching import DATASET_DESCRIPTION as SYNTHETIC_DATASET_DESCRIPTION  # no
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 
+# Korean, not English: unlike other module-level docstrings/constants in
+# this file, this specific string is rendered directly to end users on a
+# Korean-language screen (JeonbukCandidateList.tsx, AiJobRecommendPage.tsx)
+# -- see TASK "데모 매칭 표현 정직화" section 5 for the exact honesty
+# requirements this text must satisfy.
 REAL_DATASET_DESCRIPTION = (
-    "This candidate comes from a real, curated 10:10 matched-pair batch collected for this MVP "
-    "(see REAL_DATA_ACQUISITION_HANDOFF.md). It is not a claim that this is the best or only "
-    "matching posting available, and it is not a claim that the underlying occupation sample "
-    "represents the whole regional labor market."
+    "이 데이터는 실제 수도권·전북 채용공고 10:10 표본에서 가져왔습니다. 수집 시 기록된 모집직종·고용형태가 "
+    "같은 공고끼리, 유사도 검색이나 사람의 선별 없이 수집 순서에 따라 결정론적으로 1:1 연결했습니다. "
+    "가장 유사하거나 최적의 후보, 유일한 지역 대안이라는 의미는 아니며, 이 직종 표본이 전체 지역 "
+    "노동시장을 대표한다는 뜻도 아닙니다."
 )
 
 
@@ -111,9 +132,9 @@ def _to_list_item(record: dict) -> PostingListItem:
 
 
 def list_capital_area_postings() -> PostingListResponse:
-    """Every real, capital-area ('metro') posting from the curated batch,
-    public metadata only -- never full_text (redistributable: false for
-    every record in this batch; see REAL_DATA_ACQUISITION_HANDOFF.md).
+    """Every real, capital-area ('metro') posting from the acquired 10:10
+    batch, public metadata only -- never full_text (redistributable: false
+    for every record in this batch; see REAL_DATA_ACQUISITION_HANDOFF.md).
     """
     postings_by_id = _load_real_postings_by_id(str(_real_postings_path()))
     items = [_to_list_item(r) for r in postings_by_id.values() if r.get("region_group") == "metro"]
@@ -126,12 +147,15 @@ def list_capital_area_postings() -> PostingListResponse:
 
 
 def find_home_region_matches(metro_posting_id: str) -> MatchResponse:
-    """Real curated-pair lookup, scoped to the server's configured home
-    region. A metro posting whose paired counterpart is not in the home
-    region (not possible in the current single-region batch, but checked
-    explicitly so this stays correct once a second region pack exists)
-    is treated as no match rather than ever returning a candidate from an
-    unconfigured region.
+    """Deterministic pair-table lookup (never a similarity search or
+    human-curated "best match" choice -- see this module's docstring),
+    scoped to the server's configured home region. A metro posting whose
+    paired counterpart is not in the home region (not possible in the
+    current single-region batch, but checked explicitly so this stays
+    correct once a second region pack exists) is treated as no match
+    rather than ever returning a candidate from an unconfigured region.
+    In the current dataset this returns at most one candidate -- there is
+    no ranking or multi-candidate selection logic here.
     """
     postings_by_id = _load_real_postings_by_id(str(_real_postings_path()))
     metro_record = postings_by_id.get(metro_posting_id)
