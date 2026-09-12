@@ -81,6 +81,57 @@ e2e/                     Playwright 테스트
 - `prefers-reduced-motion`을 존중해 자동재생 캐러셀과 스크롤 애니메이션을 비활성화합니다.
 - 아이콘 전용 버튼에는 `aria-label`을 제공합니다.
 
+## 시연 가이드 (해커톤 데모)
+
+### 1. 실행 순서
+
+```bash
+# 터미널 1 — 백엔드 (mock, 8000번 포트)
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt
+LLM_PROVIDER=mock python -m uvicorn app.main:app --app-dir backend --port 8000
+
+# 터미널 2 — 프런트엔드 (5173번 포트)
+npm install
+npm run dev
+```
+
+- 백엔드 헬스체크: `curl http://localhost:8000/api/v1/health` → `{"status":"ok","provider_mode":"mock",...}`
+- 프런트: `http://localhost:5173/ai-job-recommend`
+- 프런트가 다른 백엔드 주소를 봐야 하면 `VITE_API_BASE_URL`을 설정한 뒤 `npm run dev`를 실행합니다 (기본값 `http://localhost:8000`).
+- **실시간 Anthropic/NVIDIA 호출은 사용하지 않습니다.** `LLM_PROVIDER=mock`만 시연 기준입니다 — 실제 provider 실행 방법과 현재 한계는 `docs/validation/LIVE_LLM_SMOKE.md`를 참고하세요 (두 provider 모두 현재 계정/모델 문제로 실시간 검증이 차단된 상태입니다).
+
+### 2. 시연 순서 (화면에서 실제로 확인할 흐름)
+
+1. `/ai-job-recommend`에서 **데모 모드 · 사전 검증된 분석 결과** 배지와 "본 서비스는 고용24 공식 서비스가 아닌 해커톤 시연용 프로토타입입니다." 문구 확인
+2. **데모 공고 불러오기** 클릭 → 관심 직종/본문이 채워짐 → **공고 분석하기** 클릭
+3. **전북 비교 후보**가 나타남 (최대 3건, 직무·지역·고용형태·비교 가능한 이유·출처 표시) → 후보 하나 선택
+4. **6개 항목 분석**: 수도권/전북 패널이 각각 독립적으로 로딩 후 결과 표시 — 상태 배지(`구체적으로 확인됨` / `언급됐지만 판단하기 어려움` / `공고에서 확인되지 않음`), 근거 인용문, vague/absent 항목의 확인 질문
+5. 아래 **지역 결손 통계** 패널이 "아직 준비되지 않았습니다"를 정직하게 표시 (human gold 없음)
+6. **자금축적 비교**에 수도권/전북 소득·주거비·생활비·보증금 입력 → 월/1년/3년 가용자금, 보증금(묶인 자산), 주거비 교차점 표시 — 승자 표시 없음
+
+### 3. 장애 발생 시 데모 복구법
+
+- **프런트에 "백엔드 서버에 연결할 수 없습니다" 배너가 뜸** → 터미널 1에서 백엔드가 살아있는지 확인 (`curl http://localhost:8000/api/v1/health`), 죽었으면 위 실행 명령으로 재시작. 프런트는 새로고침 없이 다음 액션에서 자동으로 재시도합니다.
+- **전북 후보가 안 뜸** → "관심 직종"이 정확히 `생산직(제조 조립원)`인지 확인 (데모 공고 불러오기가 이 값을 자동으로 채웁니다). 그 외 직종은 현재 큐레이션 데이터셋에 없어 "현재 검증된 전북 비교 후보가 없습니다."가 정상 동작입니다.
+- **분석이 멈춤/느림** → mock provider는 네트워크를 쓰지 않으므로 수 초 내 응답해야 합니다. 20초 이상 걸리면 프런트가 자체적으로 타임아웃 오류를 표시합니다 — 백엔드 터미널 로그를 확인하세요.
+- **완전히 막히면** → 두 터미널을 모두 종료하고 실행 순서(1번)를 처음부터 다시 수행하세요. 모든 데모 데이터는 로컬 synthetic fixture(`demo/anchors.json`, `data/postings/postings.jsonl`)라 재시작해도 상태가 깨지지 않습니다.
+
+### 4. AI-A/B consensus에 대한 정확한 설명 (시연 중 질문 대비)
+
+실제 채용공고 20건의 120개 필드에 대해 두 독립 AI 검수 결과 120개 셀 중 113개가 일치했다. 이는 정확도가 아니라
+일치도이며, 7개 경계 사례는 팀 리드가 원문과 rubric을 검토해 조정한 뒤 평가에서 최종 해결로 표시했다. **사람
+Gold 검증(2명의 독립적인 사람 라벨링)은 아직 수행되지 않았다.** 자세한 내용과 selection-bias 한계는
+`docs/data/AI_CONSENSUS_REVIEW.md`를 참고하세요. 이 수치를 "모델 정확도"나 "AI 성능"으로 인용하지 마십시오.
+
+### 5. 알려진 한계 (시연 중 정직하게 답할 내용)
+
+- 위 AI consensus는 human gold가 아님 — `docs/data/AI_CONSENSUS_REVIEW.md`
+- 실제 20건 표본은 확보했으나 재배포 권리는 건별 미확인 — `REAL_DATA_ACQUISITION_HANDOFF.md`
+- `GET /data/gap-stats`는 human gold가 없어 항상 `ready: false` (정상 동작, 화면에도 그대로 표시)
+- 실시간 Anthropic/NVIDIA 호출 미검증 (계정 크레딧/모델 프로비저닝 문제) — `docs/validation/LIVE_LLM_SMOKE.md`
+- 프런트엔드는 고용24 공식 서비스가 아닌 비공식 학습용 클론이며, 전북 비교 후보는 합성 데모 데이터셋(`data/postings/postings.jsonl`)에서만 가져옵니다 — 실제 비공개 원문(`data/private/**`)은 절대 프런트에 노출하지 않습니다.
+
 ## 아직 구현·검증되지 않음
 
 - 실제 고용24/워크넷 공고 수집 및 재배포 허가 확인 (실제 10:10 표본은 확보했으나 재배포 권리는 건별 미확인 — `REAL_DATA_ACQUISITION_HANDOFF.md`)
