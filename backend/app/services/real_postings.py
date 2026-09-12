@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
@@ -68,6 +69,31 @@ def _private_intake_raw_dir() -> Path:
     return Path(override) if override else _REPO_ROOT / "data" / "private" / "intake_raw"
 
 
+# posting_id ultimately comes from client-supplied request fields
+# (HomeRegionMatchRequest.metro_posting_id, AnalyzeByIdRequest.posting_id),
+# which only enforce min_length=1. Every real posting_id in this dataset
+# matches this pattern; anything else (path separators, "..", an absolute
+# path) is rejected before it ever reaches the filesystem.
+_POSTING_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def _private_text_path(posting_id: str) -> Optional[Path]:
+    """Resolves posting_id -> the private raw-text file path, or None if
+    posting_id is not a plain identifier or would resolve outside
+    _private_intake_raw_dir(). Never builds a path from an unvalidated
+    client-supplied string.
+    """
+    if not _POSTING_ID_PATTERN.fullmatch(posting_id):
+        return None
+    base = _private_intake_raw_dir().resolve()
+    candidate = (base / f"{posting_id}.json").resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError:
+        return None
+    return candidate
+
+
 def _read_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
@@ -101,7 +127,8 @@ def private_text_available(posting_id: str) -> bool:
     dataset's static `full_text_available_privately` claim, which only
     means "a private copy existed on *some* machine at intake time".
     """
-    return (_private_intake_raw_dir() / f"{posting_id}.json").is_file()
+    path = _private_text_path(posting_id)
+    return path is not None and path.is_file()
 
 
 def _to_list_item(record: dict) -> PostingListItem:
@@ -250,10 +277,12 @@ def find_home_region_matches(metro_posting_id: str) -> MatchResponse:
 def resolve_private_text(posting_id: str) -> tuple[str, Optional[str]]:
     """Returns (full_text, occupation). Raises PrivateDataUnavailableError
     (never a bare FileNotFoundError, never an invented placeholder text) if
-    this machine has no private copy for posting_id right now.
+    this machine has no private copy for posting_id right now, including
+    when posting_id is not a plain identifier (fails closed rather than
+    resolving a path outside the private directory).
     """
-    path = _private_intake_raw_dir() / f"{posting_id}.json"
-    if not path.is_file():
+    path = _private_text_path(posting_id)
+    if path is None or not path.is_file():
         raise PrivateDataUnavailableError(
             f"no private full text available for posting_id={posting_id!r} on this machine",
             details={"posting_id": posting_id},

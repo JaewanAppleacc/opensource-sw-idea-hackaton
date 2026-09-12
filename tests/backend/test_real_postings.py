@@ -288,6 +288,57 @@ def test_resolve_private_text_raises_when_empty(real_data):
         real_postings.resolve_private_text("TEST-MET-01")
 
 
+@pytest.mark.parametrize(
+    "malicious_posting_id",
+    [
+        "../secret",
+        "../../etc/passwd",
+        "../../../../etc/passwd",
+        "sub/dir",
+        "/etc/passwd",
+        "..%2f..%2fetc%2fpasswd",
+        "TEST-MET-01/../../secret",
+    ],
+)
+def test_resolve_private_text_rejects_path_traversal_posting_ids(real_data, tmp_path, malicious_posting_id):
+    """posting_id ultimately comes from a client-supplied request field
+    (AnalyzeByIdRequest.posting_id) with no character restriction beyond
+    min_length=1 -- it must never be able to escape the private intake_raw
+    directory via path separators or "..", regardless of what a file
+    outside that directory happens to contain."""
+    outside_secret = tmp_path / "secret.json"
+    outside_secret.write_text(
+        json.dumps({"posting_id": "irrelevant", "full_text": "SHOULD NOT BE READABLE"}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    private_dir = real_data["private_dir"]
+    private_dir.mkdir(parents=True, exist_ok=True)
+
+    with pytest.raises(PrivateDataUnavailableError):
+        real_postings.resolve_private_text(malicious_posting_id)
+
+
+@pytest.mark.parametrize("malicious_posting_id", ["../secret", "/etc/passwd", "a/../../b"])
+def test_private_text_available_rejects_path_traversal_posting_ids(real_data, malicious_posting_id):
+    private_dir = real_data["private_dir"]
+    private_dir.mkdir(parents=True, exist_ok=True)
+    assert real_postings.private_text_available(malicious_posting_id) is False
+
+
+def test_api_analyze_by_id_rejects_path_traversal_posting_id(client, real_data, tmp_path):
+    outside_secret = tmp_path / "secret.json"
+    outside_secret.write_text(
+        json.dumps({"posting_id": "irrelevant", "full_text": "SHOULD NOT BE READABLE"}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    response = client.post(
+        "/api/v1/postings/analyze-by-id",
+        json={"posting_id": "../secret"},
+    )
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "private_data_unavailable"
+
+
 # --- API-level tests ---
 
 
