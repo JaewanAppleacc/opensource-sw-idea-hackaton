@@ -1,7 +1,6 @@
-import { Check, Copy, Filter, MessageSquareText } from 'lucide-react'
+import { Copy, MessageSquareText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { PriorityItem } from '../../lib/priorityUnresolved'
-import { CHANNEL_LABELS } from '../../lib/displayLabels'
 import { useToast } from '../ui/ToastProvider'
 
 interface QuestionEntry {
@@ -9,7 +8,6 @@ interface QuestionEntry {
   region: 'metro' | 'jeonbuk'
   axisLabel: string
   prompt: string
-  channelLabel: string
 }
 
 interface CompanyQuestionsPanelProps {
@@ -19,15 +17,16 @@ interface CompanyQuestionsPanelProps {
 }
 
 /**
- * Fact-based, backend-generated verification prompts, re-surfaced as
- * copyable/saveable questions the applicant can actually send. Never shows
- * a fabricated company answer -- only an optional personal note the user
- * types themselves, explicitly labeled as such (TASK section 9).
+ * "지원 전 확인할 질문" checklist (TASK "UI 고도화" section 11) --
+ * fact-based, backend-generated verification prompts the applicant can
+ * check off and copy. Never shows a fabricated company answer; the note
+ * field is opt-in per question, not shown by default, so the checklist
+ * itself stays scannable.
  */
 export function CompanyQuestionsPanel({ items, metroLabel, jeonbukLabel }: CompanyQuestionsPanelProps) {
   const { announce } = useToast()
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
-  const [showSavedOnly, setShowSavedOnly] = useState(false)
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
+  const [noteOpenId, setNoteOpenId] = useState<string | null>(null)
   const [notes, setNotes] = useState<Record<string, string>>({})
 
   const questions = useMemo<QuestionEntry[]>(() => {
@@ -38,18 +37,10 @@ export function CompanyQuestionsPanel({ items, metroLabel, jeonbukLabel }: Compa
       const key = `${item.region}:${item.action.prompt}`
       if (seen.has(key)) continue
       seen.add(key)
-      list.push({
-        id: key,
-        region: item.region,
-        axisLabel: item.axisLabel,
-        prompt: item.action.prompt,
-        channelLabel: CHANNEL_LABELS[item.action.channel],
-      })
+      list.push({ id: key, region: item.region, axisLabel: item.axisLabel, prompt: item.action.prompt })
     }
     return list
   }, [items])
-
-  const visibleQuestions = showSavedOnly ? questions.filter((q) => savedIds.has(q.id)) : questions
 
   async function handleCopy(prompt: string) {
     try {
@@ -60,8 +51,8 @@ export function CompanyQuestionsPanel({ items, metroLabel, jeonbukLabel }: Compa
     }
   }
 
-  function toggleSaved(id: string) {
-    setSavedIds((prev) => {
+  function toggleChecked(id: string) {
+    setCheckedIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
@@ -74,63 +65,63 @@ export function CompanyQuestionsPanel({ items, metroLabel, jeonbukLabel }: Compa
   }
 
   return (
-    <div className="rounded-card border border-ink-border bg-white p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-sm font-bold text-ink-900">
-          <MessageSquareText size={15} aria-hidden="true" className="text-brand-blue" />
-          기업에 물어볼 질문
-        </p>
-        <button
-          type="button"
-          onClick={() => setShowSavedOnly((v) => !v)}
-          className={`flex items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-semibold transition ${
-            showSavedOnly ? 'bg-brand-blue text-white' : 'border border-ink-border text-ink-500 hover:border-brand-blue'
-          }`}
-        >
-          <Filter size={11} aria-hidden="true" />
-          선택한 질문만 보기
-        </button>
-      </div>
+    <div>
+      <p className="flex items-center gap-1.5 text-sm font-bold text-ink-900">
+        <MessageSquareText size={15} aria-hidden="true" className="text-brand-blue" />
+        지원 전 확인할 질문
+      </p>
+      <p className="mt-0.5 text-xs text-ink-400">공고에서 확인되지 않은 조건을 질문으로 정리했습니다.</p>
 
-      <ul className="mt-3 space-y-3">
-        {visibleQuestions.map((q) => (
-          <li key={q.id} className="rounded-card border border-ink-border p-3">
-            <p className="text-[11px] text-ink-400">
-              {q.region === 'metro' ? metroLabel : jeonbukLabel} · {q.axisLabel} · {q.channelLabel}
-            </p>
-            <p className="mt-1 text-sm text-ink-900">{q.prompt}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+      <ul className="mt-2.5 divide-y divide-ink-border rounded-card border border-ink-border">
+        {questions.map((q) => (
+          <li key={q.id} className="p-3">
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={checkedIds.has(q.id)}
+                onChange={() => toggleChecked(q.id)}
+                className="mt-0.5"
+              />
+              <span className="min-w-0 flex-1">
+                <span
+                  className={`block text-sm ${checkedIds.has(q.id) ? 'text-ink-400 line-through' : 'text-ink-900'}`}
+                >
+                  {q.prompt}
+                </span>
+                <span className="mt-0.5 block text-[11px] text-ink-400">
+                  {q.region === 'metro' ? metroLabel : jeonbukLabel} · {q.axisLabel}
+                </span>
+              </span>
+            </label>
+            <div className="mt-2 flex flex-wrap items-center gap-3 pl-6">
               <button
                 type="button"
                 onClick={() => void handleCopy(q.prompt)}
-                className="flex items-center gap-1 rounded-pill border border-ink-border px-2.5 py-1 text-[11px] font-medium text-ink-700 hover:border-brand-blue hover:text-brand-blue"
+                className="flex items-center gap-1 text-[11px] font-medium text-ink-500 hover:text-brand-blue"
               >
                 <Copy size={11} aria-hidden="true" />
-                질문 복사
+                복사
               </button>
               <button
                 type="button"
-                onClick={() => toggleSaved(q.id)}
-                className={`flex items-center gap-1 rounded-pill px-2.5 py-1 text-[11px] font-medium transition ${
-                  savedIds.has(q.id)
-                    ? 'bg-brand-green/10 text-brand-green'
-                    : 'border border-ink-border text-ink-700 hover:border-brand-blue hover:text-brand-blue'
-                }`}
+                onClick={() => setNoteOpenId(noteOpenId === q.id ? null : q.id)}
+                className="text-[11px] font-medium text-ink-500 hover:text-brand-blue"
               >
-                <Check size={11} aria-hidden="true" />
-                {savedIds.has(q.id) ? '저장됨' : '질문 목록에 저장'}
+                {noteOpenId === q.id ? '메모 닫기' : '메모 추가'}
               </button>
             </div>
-            <div className="mt-2">
-              <label className="text-[10px] font-medium text-ink-400">내 메모 (기업의 실제 답변이 아닙니다)</label>
-              <textarea
-                value={notes[q.id] ?? ''}
-                onChange={(e) => setNotes((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                rows={2}
-                placeholder="이 질문에 대한 나만의 메모를 남겨보세요."
-                className="mt-1 w-full resize-y rounded-card border border-ink-border bg-surface-muted px-2 py-1.5 text-xs text-ink-700 outline-none focus:border-brand-blue"
-              />
-            </div>
+            {noteOpenId === q.id && (
+              <div className="mt-2 pl-6">
+                <label className="text-[10px] font-medium text-ink-400">내 메모 (기업의 실제 답변이 아닙니다)</label>
+                <textarea
+                  value={notes[q.id] ?? ''}
+                  onChange={(e) => setNotes((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                  rows={2}
+                  placeholder="이 질문에 대한 나만의 메모를 남겨보세요."
+                  className="mt-1 w-full resize-y rounded-card border border-ink-border bg-surface-muted px-2 py-1.5 text-xs text-ink-700 outline-none focus:border-brand-blue"
+                />
+              </div>
+            )}
           </li>
         ))}
       </ul>

@@ -350,7 +350,6 @@ export function ManualAnalysisPage() {
               {candidatesState.status === 'success' && (
                 <JeonbukCandidateList
                   candidates={candidatesState.candidates}
-                  datasetDescription={candidatesState.datasetDescription}
                   selectedPostingId={selectedCandidate?.posting_id ?? null}
                   onSelect={(candidate) => void handleSelectCandidate(candidate)}
                 />

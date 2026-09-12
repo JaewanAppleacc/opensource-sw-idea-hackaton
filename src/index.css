@@ -42,6 +42,38 @@
       radial-gradient(circle at 88% 47%, rgba(190, 235, 255, 0.68), transparent 31%),
       linear-gradient(180deg, #ffffff 0%, #fbfbff 80%, #ffffff 100%);
   }
+
+  /* 전북 비교 패널 갱신: 새 후보 목록/패널 진입 시 한 번, opacity + 6~10px
+     이동 (TASK "UI 고도화" section 14, 허용 애니메이션 2). */
+  @keyframes panel-update {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .panel-update-in {
+    animation: panel-update 200ms ease-out both;
+  }
+
+  /* 전북 후보 3건 표시: 40~60ms 간격의 절제된 stagger, 첫 진입 시 한 번만
+     (TASK "UI 고도화" section 14, 허용 애니메이션 3). */
+  @keyframes candidate-stagger {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .candidate-stagger-in {
+    animation: candidate-stagger 220ms ease-out both;
+  }
 }
 
 @layer base {
