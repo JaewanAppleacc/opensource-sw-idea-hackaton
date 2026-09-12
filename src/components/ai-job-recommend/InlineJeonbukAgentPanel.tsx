@@ -1,5 +1,5 @@
-import { AlertTriangle, ChevronDown, Loader2, Sparkles, Wallet } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { AlertTriangle, Building2, ChevronDown, Loader2, MapPin, Wallet } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ApiClientError,
   analyzeByPostingId,
@@ -18,12 +18,10 @@ import { PriorityUnresolvedPanel } from './PriorityUnresolvedPanel'
 import { CompanyQuestionsPanel } from './CompanyQuestionsPanel'
 import { FinanceComparisonPanel } from './FinanceComparisonPanel'
 import { GapStatsNotice } from './GapStatsNotice'
-import { ServiceStepIndicator } from './ServiceStepIndicator'
 
 type MatchState =
-  | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'success'; candidates: MatchCandidate[]; datasetDescription: string }
+  | { status: 'success'; candidates: MatchCandidate[] }
   | { status: 'empty' }
   | { status: 'error'; error: ApiClientError }
 
@@ -35,54 +33,66 @@ function toApiClientError(reason: unknown): ApiClientError {
 interface InlineJeonbukAgentPanelProps {
   metroPosting: PostingListItem
   homeRegionLabel: string
+  onAnalysisSettledChange?: (settled: boolean) => void
+  className?: string
 }
 
 /**
- * Per-card inline expansion: "전북 일자리 비교 에이전트" -- looks up up to
- * three home-region comparison candidates for the given capital-area
- * posting (server-enforced home region; never a client-chosen one), lets
- * the user pick exactly one of them, then lets the user pick up to three
- * important conditions, compares both postings across six evidence-grounded
- * axes, surfaces the highest-priority unresolved information first,
- * generates real questions to ask the company, and offers an optional
- * finance comparison. The three candidates are a deterministic display
- * order (pre-linked pair first, then same-group postings in collection
- * order), never a similarity ranking, and only the user's selected
- * candidate is ever sent for analysis -- the other candidates are never
- * analyzed in the background. Never shown as a separate tool; always
- * anchored to the specific posting card it was opened from. Never computes
- * or shows a combined score or a winner anywhere in this file.
+ * The single right-hand 전북 비교 패널 rendered by the page for whichever
+ * 수도권 공고 the user selected in the list (TASK "UI 고도화" section 4/9).
+ * Looks up up to three home-region comparison candidates for that posting
+ * (server-enforced home region), lets the user pick exactly one, then pick
+ * up to three important conditions, compares both postings across six
+ * evidence-grounded axes, surfaces the highest-priority unresolved
+ * information first, generates real questions to ask the company, and
+ * offers an optional finance comparison. The three candidates are a
+ * deterministic display order (pre-linked pair first, then same-group
+ * postings in collection order), never a similarity ranking, and only the
+ * user's selected candidate is ever sent for analysis. Never computes or
+ * shows a combined score or a winner anywhere in this file.
  */
-export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: InlineJeonbukAgentPanelProps) {
-  const [expanded, setExpanded] = useState(false)
-  const [matchState, setMatchState] = useState<MatchState>({ status: 'idle' })
+export function InlineJeonbukAgentPanel({
+  metroPosting,
+  homeRegionLabel,
+  onAnalysisSettledChange,
+  className = '',
+}: InlineJeonbukAgentPanelProps) {
+  const [matchState, setMatchState] = useState<MatchState>({ status: 'loading' })
   const [selectedCandidate, setSelectedCandidate] = useState<MatchCandidate | null>(null)
   const [metroAnalysis, setMetroAnalysis] = useState<AnalysisState>({ status: 'idle' })
   const [jeonbukAnalysis, setJeonbukAnalysis] = useState<AnalysisState>({ status: 'idle' })
   const [financeOpen, setFinanceOpen] = useState(false)
   const [selectedAxisIds, setSelectedAxisIds] = useState<AxisId[]>(DEFAULT_SELECTED_AXES)
+  const [fullComparisonOpen, setFullComparisonOpen] = useState(false)
 
-  async function handleToggle() {
-    const next = !expanded
-    setExpanded(next)
-    if (next && matchState.status === 'idle') {
-      setMatchState({ status: 'loading' })
-      try {
-        const response = await getHomeRegionMatches({ metro_posting_id: metroPosting.posting_id })
+  useEffect(() => {
+    let cancelled = false
+    setMatchState({ status: 'loading' })
+    setSelectedCandidate(null)
+    setMetroAnalysis({ status: 'idle' })
+    setJeonbukAnalysis({ status: 'idle' })
+    setFinanceOpen(false)
+    setFullComparisonOpen(false)
+    getHomeRegionMatches({ metro_posting_id: metroPosting.posting_id })
+      .then((response) => {
+        if (cancelled) return
         setMatchState(
-          response.candidates.length === 0
-            ? { status: 'empty' }
-            : { status: 'success', candidates: response.candidates, datasetDescription: response.dataset_description },
+          response.candidates.length === 0 ? { status: 'empty' } : { status: 'success', candidates: response.candidates },
         )
-      } catch (err) {
+      })
+      .catch((err) => {
+        if (cancelled) return
         if (err instanceof ApiClientError && err.code === 'no_match_found') {
           setMatchState({ status: 'empty' })
         } else {
           setMatchState({ status: 'error', error: toApiClientError(err) })
         }
-      }
+      })
+    return () => {
+      cancelled = true
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metroPosting.posting_id])
 
   async function handleSelectCandidate(candidate: MatchCandidate) {
     setSelectedCandidate(candidate)
@@ -112,6 +122,11 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
     (metroAnalysis.status === 'success' || metroAnalysis.status === 'error') &&
     (jeonbukAnalysis.status === 'success' || jeonbukAnalysis.status === 'error')
 
+  useEffect(() => {
+    onAnalysisSettledChange?.(analysisSettled && bothSucceeded)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisSettled, bothSucceeded])
+
   const metroAxes = useMemo(
     () => (metroAnalysis.status === 'success' ? buildAxisResults(metroAnalysis.analysis) : null),
     [metroAnalysis],
@@ -134,37 +149,41 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
     )
   }, [metroAxes, jeonbukAxes, selectedAxisIds])
 
+  const statusCounts = useMemo(() => {
+    if (!metroAxes || !jeonbukAxes) return null
+    const counts = { confirmed: 0, vague: 0, absent: 0 }
+    for (const axes of [metroAxes, jeonbukAxes]) {
+      for (const axis of axes) {
+        for (const item of axis.subItems) {
+          if (item.displayStatus === 'confirmed') counts.confirmed += 1
+          else if (item.displayStatus === 'vague') counts.vague += 1
+          else if (item.displayStatus === 'absent') counts.absent += 1
+        }
+      }
+    }
+    return counts
+  }, [metroAxes, jeonbukAxes])
+
   return (
-    <div className="mt-3 border-t border-ink-border pt-3">
-      <button
-        type="button"
-        onClick={() => void handleToggle()}
-        aria-expanded={expanded}
-        className="flex w-full items-center justify-between gap-2 rounded-card border border-brand-blue/40 bg-tint-sky/20 px-4 py-2.5 text-left text-sm font-semibold text-brand-blue transition hover:bg-tint-sky/40"
-      >
-        <span className="flex items-center gap-1.5">
-          <Sparkles size={15} aria-hidden="true" />내 지역 유사 일자리 보기
-          <span className="font-normal text-ink-500">({homeRegionLabel} 기준)</span>
-        </span>
-        <ChevronDown
-          size={16}
-          aria-hidden="true"
-          className={`shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`}
-        />
-      </button>
+    <div className={`space-y-4 ${className}`}>
+      <div>
+        <p className="text-xs font-semibold text-ink-400">선택한 공고</p>
+        <p className="mt-1 flex items-center gap-1.5 font-bold text-ink-900">
+          <Building2 size={15} aria-hidden="true" className="shrink-0 text-ink-400" />
+          {metroPosting.company_name ?? metroPosting.posting_id}
+        </p>
+        <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-500">
+          <MapPin size={11} aria-hidden="true" />
+          {metroPosting.municipality ?? metroPosting.region} · {metroPosting.occupation} · {metroPosting.employment_type}
+        </p>
+      </div>
 
-      {expanded && (
-        <div className="mt-3 space-y-4 rounded-card border border-ink-border bg-white p-4">
-          <ServiceStepIndicator currentStep={bothSucceeded || financeOpen ? 4 : 3} />
-          <div>
-            <p className="font-semibold text-ink-900">동일 직종·고용형태의 {homeRegionLabel} 비교 공고</p>
-            <p className="mt-0.5 text-xs text-ink-400">
-              수집 시 동일하게 정규화한 모집직종과 고용형태의 {homeRegionLabel} 공고를 최대 3건 표시합니다. 표시
-              순서는 유사도 순위가 아니며, 가장 적합하거나 유일한 지역 대안이라는 의미는 아닙니다. 확인되지 않은
-              정보는 추정하지 않습니다.
-            </p>
-          </div>
+      <div className="border-t border-ink-border pt-4">
+        <p className="text-sm font-bold text-ink-900">전북 비교 공고</p>
+        <p className="mt-0.5 text-xs text-ink-400">같은 모집직종과 고용형태의 공고를 표시합니다.</p>
+        <p className="text-[11px] text-ink-300">표시 순서는 유사도 순위가 아닙니다.</p>
 
+        <div className="mt-3">
           {matchState.status === 'loading' && (
             <p className="flex items-center gap-2 text-sm text-ink-500">
               <Loader2 size={16} aria-hidden="true" className="animate-spin" />
@@ -186,39 +205,65 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
           {matchState.status === 'success' && (
             <JeonbukCandidateList
               candidates={matchState.candidates}
-              datasetDescription={matchState.datasetDescription}
               selectedPostingId={selectedCandidate?.posting_id ?? null}
               onSelect={(candidate) => void handleSelectCandidate(candidate)}
             />
           )}
+        </div>
+      </div>
 
-          {selectedCandidate && (
+      {selectedCandidate && (
+        <div className="space-y-4 border-t border-ink-border pt-4">
+          <ImportantConditionsSelector selected={selectedAxisIds} onChange={setSelectedAxisIds} />
+
+          {!analysisSettled && (
+            <p className="flex items-center gap-2 text-sm text-ink-500">
+              <Loader2 size={16} aria-hidden="true" className="animate-spin" />
+              공고를 분석하고 있어요...
+            </p>
+          )}
+
+          {metroAnalysis.status === 'error' && (
+            <p role="alert" className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+              수도권 공고: {errorCodeToMessage(metroAnalysis.error.code, metroAnalysis.error.message)}
+            </p>
+          )}
+          {jeonbukAnalysis.status === 'error' && (
+            <p role="alert" className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+              {homeRegionLabel} 후보: {errorCodeToMessage(jeonbukAnalysis.error.code, jeonbukAnalysis.error.message)}
+            </p>
+          )}
+
+          {bothSucceeded && metroAxes && jeonbukAxes && statusCounts && (
             <div className="space-y-4 border-t border-ink-border pt-4">
-              <ImportantConditionsSelector selected={selectedAxisIds} onChange={setSelectedAxisIds} />
+              <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                <span className="font-semibold text-brand-green">확인됨 {statusCounts.confirmed}</span>
+                <span className="font-semibold text-amber-700">추가 확인 {statusCounts.vague}</span>
+                <span className="font-semibold text-ink-500">공고에 없음 {statusCounts.absent}</span>
+              </p>
 
-              {!analysisSettled && (
-                <p className="flex items-center gap-2 text-sm text-ink-500">
-                  <Loader2 size={16} aria-hidden="true" className="animate-spin" />
-                  공고를 분석하고 있어요...
-                </p>
-              )}
+              <PriorityUnresolvedPanel
+                items={priorityItems}
+                metroLabel="수도권 공고"
+                jeonbukLabel={jeonbukCardLabel}
+              />
 
-              {metroAnalysis.status === 'error' && (
-                <p role="alert" className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                  <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-                  수도권 공고: {errorCodeToMessage(metroAnalysis.error.code, metroAnalysis.error.message)}
-                </p>
-              )}
-              {jeonbukAnalysis.status === 'error' && (
-                <p role="alert" className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                  <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-                  {homeRegionLabel} 후보: {errorCodeToMessage(jeonbukAnalysis.error.code, jeonbukAnalysis.error.message)}
-                </p>
-              )}
-
-              {bothSucceeded && metroAxes && jeonbukAxes && (
-                <>
-                  <h4 className="text-sm font-bold text-ink-900">수정된 6개 비교축</h4>
+              <details
+                open={fullComparisonOpen}
+                onToggle={(e) => setFullComparisonOpen((e.target as HTMLDetailsElement).open)}
+                className="group"
+              >
+                <summary className="flex cursor-pointer list-none items-center gap-1 text-sm font-semibold text-brand-blue marker:content-none">
+                  전체 조건 비교 보기
+                  <ChevronDown
+                    size={14}
+                    aria-hidden="true"
+                    className={`transition-transform duration-200 ${fullComparisonOpen ? 'rotate-180' : ''}`}
+                  />
+                </summary>
+                <div className="mt-3">
                   <ComparisonAxesPanel
                     metroLabel="수도권 공고"
                     jeonbukLabel={jeonbukCardLabel}
@@ -226,37 +271,33 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
                     jeonbukAxes={jeonbukAxes}
                     selectedAxisIds={selectedAxisIds}
                   />
-                  <PriorityUnresolvedPanel
-                    items={priorityItems}
-                    metroLabel="수도권 공고"
-                    jeonbukLabel={jeonbukCardLabel}
-                  />
-                  <CompanyQuestionsPanel
-                    items={priorityItems}
-                    metroLabel="수도권 공고"
-                    jeonbukLabel={jeonbukCardLabel}
-                  />
-                  <GapStatsNotice />
-                </>
-              )}
+                </div>
+              </details>
+
+              <CompanyQuestionsPanel
+                items={priorityItems}
+                metroLabel="수도권 공고"
+                jeonbukLabel={jeonbukCardLabel}
+              />
+              <GapStatsNotice />
             </div>
           )}
+        </div>
+      )}
 
-          {analysisSettled && bothSucceeded && (
-            <div className="border-t border-ink-border pt-4">
-              {!financeOpen ? (
-                <button
-                  type="button"
-                  onClick={() => setFinanceOpen(true)}
-                  className="flex items-center gap-2 rounded-pill border border-ink-border bg-white px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-brand-blue hover:text-brand-blue"
-                >
-                  <Wallet size={15} aria-hidden="true" />
-                  자금 축적 비교 펼치기 (선택)
-                </button>
-              ) : (
-                <FinanceComparisonPanel />
-              )}
-            </div>
+      {analysisSettled && bothSucceeded && (
+        <div className="border-t border-ink-border pt-4">
+          {!financeOpen ? (
+            <button
+              type="button"
+              onClick={() => setFinanceOpen(true)}
+              className="flex items-center gap-2 rounded-pill border border-ink-border bg-white px-4 py-2 text-sm font-semibold text-ink-700 transition-colors duration-150 hover:border-brand-blue hover:text-brand-blue"
+            >
+              <Wallet size={15} aria-hidden="true" />
+              생활비까지 비교해보기
+            </button>
+          ) : (
+            <FinanceComparisonPanel />
           )}
         </div>
       )}

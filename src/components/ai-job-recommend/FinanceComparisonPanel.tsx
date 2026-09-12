@@ -122,19 +122,19 @@ function ResultCard({
           const savings = savingsByKey[key] ?? 0
           return (
             <div key={key} className="rounded-card border border-ink-border bg-surface-muted p-4">
-              <p className="font-semibold text-ink-900">{option.label}</p>
-              <dl className="mt-2 space-y-1 text-sm text-ink-700">
-                <div className="flex justify-between">
-                  <dt>월 가용자금</dt>
-                  <dd>{formatKrw(option.monthly_surplus)}</dd>
-                </div>
+              <p className="text-sm font-semibold text-ink-900">{option.label}</p>
+              <p className="mt-2">
+                <span className="text-2xl font-bold text-ink-900">{formatKrw(option.monthly_surplus)}</span>
+                <span className="ml-1 text-xs text-ink-500">월 가용자금</span>
+              </p>
+              <dl className="mt-3 space-y-1 text-sm text-ink-700">
                 <div className="flex justify-between">
                   <dt>1년 가용자금</dt>
-                  <dd>{formatKrw(option.one_year_liquid_cash)}</dd>
+                  <dd className="font-medium">{formatKrw(option.one_year_liquid_cash)}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt>3년 가용자금 (가정 기반)</dt>
-                  <dd>{formatKrw(option.three_year_liquid_cash)}</dd>
+                  <dd className="font-medium">{formatKrw(option.three_year_liquid_cash)}</dd>
                 </div>
                 <div className="flex justify-between border-t border-ink-border pt-1 text-ink-500">
                   <dt>보증금 (묶인 자산)</dt>
@@ -158,17 +158,15 @@ function ResultCard({
         })}
       </div>
 
-      <div className="rounded-card border border-ink-border bg-white p-4 text-sm text-ink-700">
-        <p className="font-semibold text-ink-900">조건 역전점</p>
-        <p className="mt-1 text-xs text-ink-400">
-          한 가지 조건만 변경하고 나머지 입력값은 동일하다고 가정한 시나리오입니다.
-        </p>
-        <p className="mt-2">
-          <strong className="text-ink-900">월 주거비 차이 역전점.</strong> {result.crossover.interpretation}
+      <div className="text-xs text-ink-500">
+        <p className="font-semibold text-ink-700">조건 역전점 (보조 인사이트)</p>
+        <p className="mt-1 text-ink-400">한 가지 조건만 변경하고 나머지 입력값은 동일하다고 가정한 시나리오입니다.</p>
+        <p className="mt-1.5">
+          <strong className="font-medium text-ink-700">월 주거비 차이 역전점.</strong> {result.crossover.interpretation}
         </p>
         {additionalCrossovers.map((c) => (
-          <p key={c.id} className="mt-2">
-            <strong className="text-ink-900">{c.title}.</strong> {c.statement}
+          <p key={c.id} className="mt-1.5">
+            <strong className="font-medium text-ink-700">{c.title}.</strong> {c.statement}
           </p>
         ))}
       </div>
@@ -262,15 +260,15 @@ export function FinanceComparisonPanel() {
   const jeonbukSavings = parseNonNegative(jeonbuk.current_savings) ?? 0
 
   return (
-    <div className="rounded-card border border-ink-border bg-white p-5">
-      <h3 className="flex items-center gap-2 font-bold text-ink-900">
-        <Wallet size={18} aria-hidden="true" className="text-brand-blue" />
-        자금축적 비교 (1년 · 3년)
+    <div>
+      <h3 className="flex items-center gap-2 text-sm font-bold text-ink-900">
+        <Wallet size={16} aria-hidden="true" className="text-brand-blue" />
+        생활비까지 비교해보기
       </h3>
       <p className="mt-1 text-xs text-ink-400">
-        입력한 값만 사용하는 결정론적 계산입니다. 추천 점수나 승자는 표시하지 않습니다.
+        직접 입력한 금액으로 1년·3년 뒤 가용자금을 계산합니다. 추천 점수나 승자는 표시하지 않습니다.
       </p>
-      <p className="mt-2 flex items-start gap-1.5 rounded-card bg-surface-muted p-2 text-[11px] text-ink-500">
+      <p className="mt-2 flex items-start gap-1.5 text-[11px] text-ink-400">
         <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
         시연용 예시값입니다. 실제 거주지와 출퇴근 조건에 맞게 수정할 수 있습니다.
       </p>
