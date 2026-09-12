@@ -29,6 +29,11 @@ import argparse
 from pathlib import Path
 
 from common import AI_SUGGESTION_ONLY_KEYS, read_jsonl, sha256_of_file
+from private_source import (
+    check_no_pii_in_evidence,
+    check_path_is_gitignored,
+    join_public_and_private,
+)
 from validate_dataset import validate_annotation_file
 
 
@@ -103,8 +108,13 @@ def validate_packet_pair(
     path_b: Path,
     postings_path: Path,
     allow_incomplete: bool = False,
+    private_dir: Path | None = None,
+    expected_posting_count: int | None = None,
 ) -> tuple[bool, dict[str, list[str]]]:
-    postings = read_jsonl(postings_path)
+    if private_dir is not None:
+        postings = join_public_and_private(postings_path, private_dir, strict=True)
+    else:
+        postings = read_jsonl(postings_path)
     postings_by_id = {p["posting_id"]: p for p in postings}
     a_records = read_jsonl(path_a)
     b_records = read_jsonl(path_b)
@@ -123,7 +133,22 @@ def validate_packet_pair(
         "annotator_B synthetic flag present": check_synthetic_flag_present(b_records),
         "A/B files distinct": check_files_distinct(path_a, path_b),
         "A/B cross-provenance": check_cross_annotator_provenance(a_records, b_records),
+        "annotator_A evidence has no PII": check_no_pii_in_evidence(a_records),
+        "annotator_B evidence has no PII": check_no_pii_in_evidence(b_records),
     }
+    if private_dir is not None:
+        # Only meaningful (and only enforced) for a real, rights-gated batch
+        # -- a synthetic-fixture packet has no privacy exposure and may
+        # legitimately live at an arbitrary path (e.g. a test's tmp_path,
+        # which `git check-ignore` cannot classify at all since it sits
+        # outside this repository).
+        results["annotator_A output path gitignored"] = check_path_is_gitignored(path_a)
+        results["annotator_B output path gitignored"] = check_path_is_gitignored(path_b)
+    if expected_posting_count is not None:
+        n = len(postings)
+        results["expected posting count"] = (
+            [] if n == expected_posting_count else [f"expected {expected_posting_count} posting(s), found {n}"]
+        )
     ok = all(len(errs) == 0 for errs in results.values())
     return ok, results
 
@@ -144,13 +169,32 @@ def main() -> int:
     ap.add_argument("--packet-b", required=True, type=Path)
     ap.add_argument("--postings", required=True, type=Path)
     ap.add_argument(
+        "--private-dir",
+        type=Path,
+        default=None,
+        help="Directory of private per-posting JSON files to join real full_text in from, for evidence/offset validation against a --postings file whose full_text is null.",
+    )
+    ap.add_argument(
+        "--expected-posting-count",
+        type=int,
+        default=None,
+        help="Fail if the postings file does not contain exactly this many postings (e.g. 20 for the real 10:10 batch).",
+    )
+    ap.add_argument(
         "--allow-incomplete",
         action="store_true",
         help="Allow null status cells (use while annotation is still in progress; adjudication still refuses incomplete packets regardless)",
     )
     args = ap.parse_args()
 
-    ok, results = validate_packet_pair(args.packet_a, args.packet_b, args.postings, allow_incomplete=args.allow_incomplete)
+    ok, results = validate_packet_pair(
+        args.packet_a,
+        args.packet_b,
+        args.postings,
+        allow_incomplete=args.allow_incomplete,
+        private_dir=args.private_dir,
+        expected_posting_count=args.expected_posting_count,
+    )
     _print_results(results)
 
     print()

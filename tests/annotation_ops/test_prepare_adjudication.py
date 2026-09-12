@@ -108,6 +108,50 @@ def test_build_queue_writes_comparison_and_disagreement_only_review_queue(tmp_pa
     assert all(r["adjudicated_status"] is not None for r in agreed)
 
 
+def test_build_queue_joins_private_text_for_a_real_batch_style_postings_file(real_private_subdir):
+    """Mirrors the real workflow: --postings has full_text: null and the
+    real text lives under --private-dir, exactly like data/intake/real_postings.jsonl
+    + data/private/intake_raw/. Synthetic content only.
+    """
+    postings_path = real_private_subdir / "postings.jsonl"
+    write_jsonl(
+        postings_path,
+        [
+            {
+                "posting_id": "JB-001",
+                "region_group": "jeonbuk",
+                "occupation": "생산직(제조 조립원)",
+                "employment_type": "정규직",
+                "full_text": None,
+                "matched_pair_id": "P1",
+                "unmatched": False,
+            }
+        ],
+    )
+    private_dir = real_private_subdir / "private_raw"
+    private_dir.mkdir(parents=True)
+    (private_dir / "JB-001.json").write_text(
+        json.dumps({"posting_id": "JB-001", "full_text": "월급 250만원 지급."}, ensure_ascii=False), encoding="utf-8"
+    )
+
+    a_rows = [cell(f, "A") for f in FIELDS]
+    b_rows = [cell(f, "B") for f in FIELDS]
+    a_rows[0].update(status="confirmed", evidence_text="250만원", offsets=[3, 8])
+    b_rows[0].update(status="confirmed", evidence_text="250만원", offsets=[3, 8])
+
+    a_path = real_private_subdir / "annotator_A" / "packet.jsonl"
+    b_path = real_private_subdir / "annotator_B" / "packet.jsonl"
+    write_jsonl(a_path, a_rows)
+    write_jsonl(b_path, b_rows)
+
+    out_path = real_private_subdir / "comparison.jsonl"
+    review_path = real_private_subdir / "review.jsonl"
+    stats = build_queue(a_path, b_path, postings_path, out_path, review_path, private_dir=private_dir)
+
+    assert stats["total_cells"] == len(FIELDS)
+    assert stats["disagree_count"] == 0
+
+
 def test_verify_final_fails_when_status_still_null(tmp_path):
     path = tmp_path / "final.jsonl"
     write_jsonl(path, [{"posting_id": "JB-001", "field": "salary", "adjudicated_status": None, "agreement": True}])

@@ -148,3 +148,105 @@ def test_validate_packet_pair_fails_on_annotator_id_contamination(tmp_path):
     ok, results = validate_packet_pair(a_path, b_path, postings_path)
     assert not ok
     assert results["annotator_A isolation (annotator_id)"]
+
+
+def _write_private_json(private_dir, posting_id, full_text):
+    private_dir.mkdir(parents=True, exist_ok=True)
+    (private_dir / f"{posting_id}.json").write_text(
+        json.dumps({"posting_id": posting_id, "full_text": full_text}, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def test_validate_packet_pair_joins_private_text_for_evidence_check(real_private_subdir):
+    postings_path = real_private_subdir / "public.jsonl"
+    write_jsonl(postings_path, [{"posting_id": "JB-001", "region_group": "jeonbuk", "occupation": "x", "employment_type": "정규직", "full_text": None, "matched_pair_id": "P1", "unmatched": False}])
+    private_dir = real_private_subdir / "private_raw"
+    _write_private_json(private_dir, "JB-001", "월급 250만원 지급.")
+
+    a_path = real_private_subdir / "annotator_A" / "packet.jsonl"
+    b_path = real_private_subdir / "annotator_B" / "packet.jsonl"
+    a_rows = full_packet("A")
+    a_rows[0].update(status="confirmed", evidence_text="250만원", offsets=[3, 8])
+    b_rows = full_packet("B")
+    b_rows[0].update(status="confirmed", evidence_text="250만원", offsets=[3, 8])
+    write_jsonl(a_path, a_rows)
+    write_jsonl(b_path, b_rows)
+
+    ok, results = validate_packet_pair(a_path, b_path, postings_path, private_dir=private_dir)
+    assert ok, results
+
+
+def test_validate_packet_pair_flags_evidence_offset_mismatch_against_private_text(real_private_subdir):
+    postings_path = real_private_subdir / "public.jsonl"
+    write_jsonl(postings_path, [{"posting_id": "JB-001", "region_group": "jeonbuk", "occupation": "x", "employment_type": "정규직", "full_text": None, "matched_pair_id": "P1", "unmatched": False}])
+    private_dir = real_private_subdir / "private_raw"
+    _write_private_json(private_dir, "JB-001", "월급 250만원 지급.")
+
+    a_path = real_private_subdir / "annotator_A" / "packet.jsonl"
+    b_path = real_private_subdir / "annotator_B" / "packet.jsonl"
+    a_rows = full_packet("A")
+    # Wrong offsets for the claimed evidence text.
+    a_rows[0].update(status="confirmed", evidence_text="250만원", offsets=[0, 5])
+    b_rows = full_packet("B")
+    b_rows[0].update(status="confirmed", evidence_text="250만원", offsets=[3, 8])
+    write_jsonl(a_path, a_rows)
+    write_jsonl(b_path, b_rows)
+
+    ok, results = validate_packet_pair(a_path, b_path, postings_path, private_dir=private_dir)
+    assert not ok
+    assert results["annotator_A schema/evidence"]
+
+
+def test_validate_packet_pair_flags_pii_in_evidence():
+    a_rows = full_packet("A")
+    a_rows[0]["evidence_text"] = "문의: 010-1234-5678"
+    b_rows = full_packet("B")
+    from private_source import check_no_pii_in_evidence
+
+    assert check_no_pii_in_evidence(a_rows)
+    assert check_no_pii_in_evidence(b_rows) == []
+
+
+def test_validate_packet_pair_enforces_gitignored_output_only_in_private_dir_mode(tmp_path):
+    """Without --private-dir (the synthetic-fixture path), an arbitrary
+    tmp_path output location must still be accepted -- this is the existing,
+    pre-real-data behavior and must not regress.
+    """
+    postings_path = tmp_path / "postings.jsonl"
+    write_jsonl(postings_path, [{"posting_id": "JB-001", "region_group": "jeonbuk", "occupation": "x", "employment_type": "정규직", "full_text": "월급 250만원 지급.", "matched_pair_id": "P1", "unmatched": False}])
+    a_path = tmp_path / "annotator_A" / "packet.jsonl"
+    b_path = tmp_path / "annotator_B" / "packet.jsonl"
+    write_jsonl(a_path, full_packet("A"))
+    write_jsonl(b_path, full_packet("B"))
+
+    ok, results = validate_packet_pair(a_path, b_path, postings_path)
+    assert ok, results
+    assert "annotator_A output path gitignored" not in results
+
+
+def test_validate_packet_pair_expected_posting_count_mismatch_fails(tmp_path):
+    postings_path = tmp_path / "postings.jsonl"
+    write_jsonl(postings_path, [{"posting_id": "JB-001", "region_group": "jeonbuk", "occupation": "x", "employment_type": "정규직", "full_text": "월급 250만원 지급.", "matched_pair_id": "P1", "unmatched": False}])
+    a_path = tmp_path / "annotator_A" / "packet.jsonl"
+    b_path = tmp_path / "annotator_B" / "packet.jsonl"
+    write_jsonl(a_path, full_packet("A"))
+    write_jsonl(b_path, full_packet("B"))
+
+    ok, results = validate_packet_pair(a_path, b_path, postings_path, expected_posting_count=20)
+    assert not ok
+    assert results["expected posting count"]
+
+
+def test_validate_packet_pair_real_gitignored_output_passes_in_private_dir_mode(real_private_subdir):
+    postings_path = real_private_subdir / "public.jsonl"
+    write_jsonl(postings_path, [{"posting_id": "JB-001", "region_group": "jeonbuk", "occupation": "x", "employment_type": "정규직", "full_text": None, "matched_pair_id": "P1", "unmatched": False}])
+    private_dir = real_private_subdir / "private_raw"
+    _write_private_json(private_dir, "JB-001", "월급 250만원 지급.")
+    a_path = real_private_subdir / "annotator_A" / "packet.jsonl"
+    b_path = real_private_subdir / "annotator_B" / "packet.jsonl"
+    write_jsonl(a_path, full_packet("A"))
+    write_jsonl(b_path, full_packet("B"))
+
+    ok, results = validate_packet_pair(a_path, b_path, postings_path, private_dir=private_dir, allow_incomplete=True)
+    assert results["annotator_A output path gitignored"] == []
+    assert results["annotator_B output path gitignored"] == []

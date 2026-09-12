@@ -41,6 +41,7 @@ from common import (
     utc_now_iso,
     write_jsonl,
 )
+from private_source import assert_output_under_gitignore, join_public_and_private
 
 
 def is_synthetic(posting: dict) -> bool:
@@ -85,13 +86,32 @@ def build_packet_rows(postings: list[dict], annotator_id: str, rubric_version: s
     return rows
 
 
-def build_packets(postings_path: Path, rubric_path: Path, out_dir: Path) -> dict:
-    postings = load_postings(postings_path)
+def build_packets(
+    postings_path: Path,
+    rubric_path: Path,
+    out_dir: Path,
+    private_dir: Path | None = None,
+    strict_private: bool = True,
+) -> dict:
+    """When `private_dir` is given, `postings_path` is treated as a public
+    postings file whose `full_text` is null (e.g. `data/intake/real_postings.jsonl`)
+    and the real text is joined in from `private_dir` (e.g.
+    `data/private/intake_raw/`) -- see `private_source.join_public_and_private`.
+    Otherwise behaves exactly as before, requiring `full_text` already
+    present in `postings_path` (the synthetic-fixture / already-public path).
+    """
+    out_dir = Path(out_dir)
+    if private_dir is not None:
+        # Real, non-synthetic full text is about to be written into these
+        # packets -- refuse outright if the destination isn't actually
+        # gitignored, regardless of what the caller named the directory.
+        assert_output_under_gitignore(out_dir)
+        postings = join_public_and_private(postings_path, private_dir, strict=strict_private)
+    else:
+        postings = load_postings(postings_path)
     if not postings:
         raise ValueError(f"{postings_path}: no postings found")
     rubric_version = load_rubric_version(rubric_path)
-
-    out_dir = Path(out_dir)
     packet_paths: dict[str, str] = {}
     for annotator_id in ANNOTATOR_IDS:
         rows = build_packet_rows(postings, annotator_id, rubric_version)
@@ -103,6 +123,7 @@ def build_packets(postings_path: Path, rubric_path: Path, out_dir: Path) -> dict
         "generated_at": utc_now_iso(),
         "input_postings_path": str(Path(postings_path).resolve()),
         "input_postings_sha256": sha256_of_file(postings_path),
+        "private_dir": str(Path(private_dir).resolve()) if private_dir is not None else None,
         "rubric_path": str(Path(rubric_path).resolve()),
         "rubric_version": rubric_version,
         "posting_count": len(postings),
@@ -127,9 +148,28 @@ def main() -> int:
     ap.add_argument("--postings", required=True, type=Path, help="Path to a real postings JSONL file (any local path)")
     ap.add_argument("--rubric", required=True, type=Path, help="Path to data/rubric/rubric.yaml")
     ap.add_argument("--out-dir", required=True, type=Path, help="Directory to write annotator_A/, annotator_B/, manifest.json into")
+    ap.add_argument(
+        "--private-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Directory of private per-posting JSON files (e.g. data/private/intake_raw/) "
+            "to join real full_text in from, for a --postings file whose full_text is null. "
+            "--out-dir must resolve to a gitignored path when this is used."
+        ),
+    )
+    ap.add_argument(
+        "--no-strict-private",
+        dest="strict_private",
+        action="store_false",
+        default=True,
+        help="Downgrade an orphan private file (no matching public posting) to a warning instead of failing.",
+    )
     args = ap.parse_args()
 
-    manifest = build_packets(args.postings, args.rubric, args.out_dir)
+    manifest = build_packets(
+        args.postings, args.rubric, args.out_dir, private_dir=args.private_dir, strict_private=args.strict_private
+    )
     print(
         f"Wrote packets for {manifest['posting_count']} posting(s), "
         f"{manifest['cell_count_per_annotator']} cells each, to {args.out_dir}"

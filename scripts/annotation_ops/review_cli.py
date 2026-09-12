@@ -30,6 +30,7 @@ import argparse
 from pathlib import Path
 
 from common import read_jsonl, write_jsonl
+from private_source import join_public_and_private
 
 
 class QuitReview(Exception):
@@ -160,6 +161,15 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--packet", required=True, type=Path, help="This annotator's own packet.jsonl -- never the other annotator's file")
     ap.add_argument("--postings", required=True, type=Path, help="The postings JSONL the packet was built from")
+    ap.add_argument(
+        "--private-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Directory of private per-posting JSON files (e.g. data/private/intake_raw/) "
+            "to join real full_text in from, when --postings has full_text: null."
+        ),
+    )
     ap.add_argument("--redo", action="store_true", help="Revisit cells that already have a status, not just unanswered ones")
     ap.add_argument("--limit", type=int, default=None, help="Stop after answering this many cells this session")
     args = ap.parse_args()
@@ -174,7 +184,10 @@ def main() -> int:
         print(f"ERROR: {args.packet} has mixed or missing annotator_id values: {annotator_ids}")
         return 1
 
-    postings = read_jsonl(args.postings)
+    if args.private_dir is not None:
+        postings = join_public_and_private(args.postings, args.private_dir, strict=True)
+    else:
+        postings = read_jsonl(args.postings)
     postings_by_id = {p["posting_id"]: p for p in postings}
 
     def save() -> None:

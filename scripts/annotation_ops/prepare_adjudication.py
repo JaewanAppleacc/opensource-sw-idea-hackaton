@@ -49,6 +49,7 @@ def build_queue(
     postings_path: Path,
     out_path: Path,
     review_queue_path: Path,
+    private_dir: Path | None = None,
 ) -> dict:
     a_records = read_jsonl(path_a)
     b_records = read_jsonl(path_b)
@@ -58,7 +59,7 @@ def build_queue(
     if not is_packet_complete(b_records):
         raise ValueError(f"REFUSED: {path_b} has unanswered cells (null status). Finish annotation before adjudication.")
 
-    ok, results = validate_packet_pair(path_a, path_b, postings_path, allow_incomplete=False)
+    ok, results = validate_packet_pair(path_a, path_b, postings_path, allow_incomplete=False, private_dir=private_dir)
     if not ok:
         lines = ["REFUSED: packet validation failed."]
         for check, errors in results.items():
@@ -124,6 +125,12 @@ def main() -> int:
     ap.add_argument("--packet-a", type=Path)
     ap.add_argument("--packet-b", type=Path)
     ap.add_argument("--postings", type=Path)
+    ap.add_argument(
+        "--private-dir",
+        type=Path,
+        default=None,
+        help="Directory of private per-posting JSON files to join real full_text in from, for a --postings file whose full_text is null.",
+    )
     ap.add_argument("--out", type=Path)
     ap.add_argument("--review-queue-out", type=Path, help="Defaults to <out>_disagreements.jsonl next to --out")
     ap.add_argument("--verify-final", type=Path, help="Verify a human-completed adjudication file instead of building a new queue")
@@ -152,7 +159,9 @@ def main() -> int:
     review_queue_out = args.review_queue_out or args.out.with_name(args.out.stem + "_disagreements" + args.out.suffix)
 
     try:
-        stats = build_queue(args.packet_a, args.packet_b, args.postings, args.out, review_queue_out)
+        stats = build_queue(
+            args.packet_a, args.packet_b, args.postings, args.out, review_queue_out, private_dir=args.private_dir
+        )
     except ValueError as e:
         print(str(e))
         return 1

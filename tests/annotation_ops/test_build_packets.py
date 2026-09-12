@@ -3,6 +3,7 @@ import json
 import pytest
 from build_packets import build_packet_rows, build_packets, is_synthetic
 from common import FIELDS, read_jsonl
+from private_source import PrivateSourceError
 
 
 def write_jsonl_file(path, records):
@@ -128,3 +129,60 @@ def test_build_packets_rejects_rubric_missing_version(tmp_path):
 
     with pytest.raises(ValueError, match="rubric_version"):
         build_packets(postings_path, rubric_path, tmp_path / "out")
+
+
+def _write_private_json(private_dir, posting_id, full_text):
+    private_dir.mkdir(parents=True, exist_ok=True)
+    (private_dir / f"{posting_id}.json").write_text(
+        json.dumps({"posting_id": posting_id, "full_text": full_text}, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def test_build_packets_with_private_dir_joins_full_text(real_private_subdir):
+    postings_path = real_private_subdir / "public.jsonl"
+    write_jsonl_file(postings_path, [make_posting(posting_id="TEST-01", full_text=None)])
+    rubric_path = real_private_subdir / "rubric.yaml"
+    rubric_path.write_text(RUBRIC_YAML, encoding="utf-8")
+
+    private_dir = real_private_subdir / "private_raw"
+    _write_private_json(private_dir, "TEST-01", "합성 테스트 공고 본문입니다.")
+
+    out_dir = real_private_subdir / "packets"
+    manifest = build_packets(postings_path, rubric_path, out_dir, private_dir=private_dir)
+
+    assert manifest["posting_count"] == 1
+    a_rows = read_jsonl(out_dir / "annotator_A" / "packet.jsonl")
+    # Packets never carry full_text, regardless of join mode.
+    assert all("full_text" not in row for row in a_rows)
+    # The public source file itself must remain untouched (still null).
+    public_rows = read_jsonl(postings_path)
+    assert public_rows[0]["full_text"] is None
+
+
+def test_build_packets_with_private_dir_rejects_non_gitignored_out_dir(tmp_path, real_private_subdir):
+    postings_path = real_private_subdir / "public.jsonl"
+    write_jsonl_file(postings_path, [make_posting(posting_id="TEST-01", full_text=None)])
+    rubric_path = real_private_subdir / "rubric.yaml"
+    rubric_path.write_text(RUBRIC_YAML, encoding="utf-8")
+    private_dir = real_private_subdir / "private_raw"
+    _write_private_json(private_dir, "TEST-01", "합성 테스트 공고 본문입니다.")
+
+    # tmp_path is outside this repository entirely -- never gitignored.
+    with pytest.raises(PrivateSourceError, match="NOT covered by .gitignore"):
+        build_packets(postings_path, rubric_path, tmp_path / "packets", private_dir=private_dir)
+
+
+def test_build_packets_with_private_dir_fails_on_missing_text(real_private_subdir):
+    postings_path = real_private_subdir / "public.jsonl"
+    write_jsonl_file(
+        postings_path,
+        [make_posting(posting_id="TEST-01", full_text=None), make_posting(posting_id="TEST-02", full_text=None)],
+    )
+    rubric_path = real_private_subdir / "rubric.yaml"
+    rubric_path.write_text(RUBRIC_YAML, encoding="utf-8")
+    private_dir = real_private_subdir / "private_raw"
+    _write_private_json(private_dir, "TEST-01", "합성 테스트 공고 본문입니다.")
+    # TEST-02 has no private file.
+
+    with pytest.raises(PrivateSourceError, match="TEST-02"):
+        build_packets(postings_path, rubric_path, real_private_subdir / "packets", private_dir=private_dir)
