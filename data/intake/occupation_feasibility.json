@@ -1,7 +1,30 @@
 {
   "measured_date": "2026-09-12",
-  "total_real_postings_ingested": 0,
-  "candidates": [],
-  "overall_status": "INSUFFICIENT_SAMPLE",
+  "total_real_postings_ingested": 20,
+  "candidates": [
+    {
+      "occupation": "생산직(제조 조립원)",
+      "employment_type": "정규직",
+      "jeonbuk_count": 10,
+      "metro_count": 10,
+      "pairable_count": 10,
+      "full_text_sufficient_count": {
+        "jeonbuk": 10,
+        "metro": 10
+      },
+      "collection_dates": {
+        "jeonbuk": [
+          "2026-09-12"
+        ],
+        "metro": [
+          "2026-09-12"
+        ]
+      },
+      "meets_min_10_10": true,
+      "meets_target_20_20": false,
+      "human_boundary_review_completed": null
+    }
+  ],
+  "overall_status": "MIN_SAMPLE_MET_PENDING_HUMAN_BOUNDARY_REVIEW",
   "note": "meets_min_10_10 / meets_target_20_20 are raw-count checks only. Per TASK_REAL_DATA_ACQUISITION.md Phase 2, an occupation may only be finalized once a human has also confirmed tools_or_skills/duties boundaries are judgeable for it (human_boundary_review_completed)."
 }

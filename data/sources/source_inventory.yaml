@@ -37,23 +37,28 @@ sources:
       - "The project's XML mapping and exact sampling-filter behavior have not been verified against a live response."
     status: "blocked_no_credentials"
 
-  - source_name: "User-provided postings — manual intake (active path, Parallel task D1)"
+  - source_name: "User-provided postings — manual intake (active path, Parallel task D1 / D2 real-postings pass)"
     access_method: >
-      A team member with personal authorization to share a real posting
-      (their own screen copy) pastes it into the plain-text template in
+      A team member (or, on 2026-09-12, this agent acting under the same
+      manual-intake rule) opens the public 고용24 채용정보 상세 페이지
+      (www.work24.go.kr) for one posting at a time via the site's own
+      "채용정보 상세검색" search UI — never the Open API, never a bulk
+      scraper, never a private platform — and transcribes the visible text
+      verbatim into the plain-text template in
       docs/acquisition/MANUAL_INTAKE_GUIDE.md, one posting per block, with a
-      fixed neutral sampling rule (sort by recency, take from the top, no
-      cherry-picking by information richness). Ingested with
+      fixed neutral sampling rule (same keyword/region/employment-type
+      filters both regions, sorted by 최근등록일순, taken from the top of
+      the list, factual-only exclusions). Ingested with
       scripts/acquisition/manual_intake.py.
-    license_terms_status: "Case-by-case per posting via the required `redistribution_permission` (yes/no/unknown) field. `unknown`/`no` keep the full text out of the public data/intake/real_postings.jsonl entirely (private-only, in data/private/intake_raw/, gitignored); only `yes` allows the public record to carry full_text."
-    date_range: "Depends on when each batch is supplied; recorded per-record as a real `collection_date`."
-    jeonbuk_count_by_occupation: "0 ingested as of this check (2026-09-12) — tooling built and tested, no real postings supplied to this agent session yet. See REAL_DATA_ACQUISITION_HANDOFF.md."
-    metro_count: "0 ingested as of this check — same reason."
-    employment_type_availability: "Recorded per-record from the human-supplied header; no assumption made until real records exist."
-    full_text_redistributable: "Per-record, from redistribution_permission; unknown/no by default until explicitly confirmed."
+    license_terms_status: "Case-by-case per posting via the required `redistribution_permission` (yes/no/unknown) field. `unknown`/`no` keep the full text out of the public data/intake/real_postings.jsonl entirely (private-only, in data/private/intake_raw/, gitignored); only `yes` allows the public record to carry full_text. All 20 records ingested 2026-09-12 are `unknown` — 고용24's own detail-service page requires attribution/backlink and states unauthorized reproduction is prohibited, and no approved-use terms have been separately confirmed, so redistribution defaults to unknown, not assumed."
+    date_range: "Depends on when each batch is supplied; recorded per-record as a real `collection_date`. All 20 records ingested 2026-09-12 were also viewed/collected on 2026-09-12 (same-day collection, within the 30-day window fixed in docs/acquisition/REAL_SOURCE_SEARCH_LOG.md)."
+    jeonbuk_count_by_occupation: "10 real postings ingested 2026-09-12 for 생산직(제조 조립원)/정규직 (JB-01..JB-10). See docs/acquisition/REAL_SOURCE_SEARCH_LOG.md for the full feasibility scan across all three domains and REAL_DATA_ACQUISITION_HANDOFF.md for status."
+    metro_count: "10 real postings ingested 2026-09-12 for the same occupation/employment_type, region_group=metro (서울/인천/경기; all 10 ended up in 인천 or 경기 — see REAL_SOURCE_SEARCH_LOG.md comparability notes) (MET-01..MET-10)."
+    employment_type_availability: "Recorded per-record from the human-supplied header. All 20 real records ingested 2026-09-12 are 정규직, filtered at collection time via 고용24's own '기간의 정함이 없는 근로계약' employment-type facet (not just the broader 상용직 status facet)."
+    full_text_redistributable: "Per-record, from redistribution_permission; all 20 real records are `unknown` as of 2026-09-12 pending an explicit terms re-check, so data/intake/real_postings.jsonl carries full_text: null for all of them and the real text lives only in the gitignored data/private/intake_raw/."
     blockers:
-      - "No real postings have been attached/ingested in this agent session yet. This is the currently-preferred path (team decision, 2026-09-12) over the API path due to key-issuance friction, but requires a human to actually supply posting text files next."
-    status: "available_but_empty"
+      - "None for ingestion itself — 10:10 real postings for 생산직(제조 조립원)/정규직 are now ingested (2026-09-12). Two humans have not yet independently annotated them and no human has confirmed the duties/tools_or_skills boundary judgeability check (human_boundary_review_completed is null in data/intake/occupation_feasibility.json by design) — see REAL_DATA_ACQUISITION_HANDOFF.md for the exact remaining steps."
+    status: "min_sample_ingested_pending_human_review"
 
   - source_name: "사람인 / 잡코리아 / 잡플래닛 (민간 채용 플랫폼)"
     access_method: "Web UI; some platforms have historically offered partner-only or deprecated public APIs, not open self-serve APIs as of this check."
@@ -99,8 +104,17 @@ sources:
 
 occupation_feasibility_decision:
   chosen_occupation: "생산직(제조 조립원) — production/assembly line worker, 정규직 (regular/full-time)"
-  status: "PROVISIONAL — selected for pipeline design only; not yet confirmed against a real 10:10 source"
-  see: "data/occupation_selection.md"
+  status: >
+    CONFIRMED AGAINST A REAL 10:10 SAMPLE as of 2026-09-12 (10 Jeonbuk +
+    10 metro real postings ingested from 고용24, same keyword/employment-type
+    filters, same day of collection). Still not gold — no human annotation or
+    adjudication has occurred, and human_boundary_review_completed remains
+    null in data/intake/occupation_feasibility.json until a human explicitly
+    sets it. See docs/acquisition/REAL_SOURCE_SEARCH_LOG.md for the full
+    cross-domain (금융·경영 / IT·디지털 / 생산·기술) feasibility scan that
+    led to this choice, including the close runner-up (회계 사무원) and the
+    two candidates excluded for occupation mismatch during collection.
+  see: "data/occupation_selection.md, docs/acquisition/REAL_SOURCE_SEARCH_LOG.md"
 
 overall_conclusion: >
   As of 2026-09-12, no real Jeonbuk/metropolitan postings have been obtained.
@@ -122,7 +136,17 @@ overall_conclusion: >
   and WORK24_SERVICE_KEY) and scripts/acquisition/manual_intake.py (parses
   human-supplied posting text into the shared schema, gates full-text
   redistribution on a per-record `redistribution_permission` field). The
-  team has chosen the manual-intake path for this pass due to API
-  key-issuance friction, but zero real postings have been supplied to any
-  agent session yet — see REAL_DATA_ACQUISITION_HANDOFF.md for the current
-  BLOCKED_INSUFFICIENT_SAMPLE decision and the exact next human action.
+  team chose the manual-intake path due to API key-issuance friction.
+
+  2026-09-12 second update (real-postings-comparable-domain pass): using
+  the manual-intake path against 고용24's own public search UI (not the
+  API, not a scraper), an agent session researched search-result feasibility
+  across three candidate domains (금융·경영 / IT·디지털 / 생산·기술; see
+  docs/acquisition/REAL_SOURCE_SEARCH_LOG.md), selected 생산직(제조
+  조립원)/정규직, and ingested a real 10 Jeonbuk + 10 metropolitan sample
+  (same query, same day, same employment-type filter). The API path
+  (work24_client.py) remains blocked_no_credentials — this update is about
+  the manual-intake path only. See REAL_DATA_ACQUISITION_HANDOFF.md for the
+  current MIN_SAMPLE_MET_PENDING_HUMAN_BOUNDARY_REVIEW decision and the
+  exact remaining human action (independent two-person annotation and
+  boundary-judgeability confirmation).
