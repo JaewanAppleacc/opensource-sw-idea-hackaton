@@ -1,0 +1,21 @@
+{
+  "_note": "A GUESSED response shape for offline dry-run testing only. This is NOT a captured real Work24/WorkNet API response — the real schema is unconfirmed (see docs/acquisition/WORK24_API_NOTES.md). Do not treat this fixture as evidence of the real API's shape.",
+  "field_map_override": {
+    "posting_id": "wantedAuthNo",
+    "company_name": "company",
+    "occupation": "jobCd",
+    "employment_type": "empTpCd",
+    "posting_url": "wantedInfoUrl",
+    "detail_text": "jobCont"
+  },
+  "records": [
+    {
+      "wantedAuthNo": "W-TEST-001",
+      "company": "(예시) 테스트제조(주)",
+      "jobCd": "생산직(제조 조립원)",
+      "empTpCd": "정규직",
+      "wantedInfoUrl": "https://example.invalid/w-test-001",
+      "jobCont": "완성차 부품 조립 및 품질 검사 업무를 담당합니다."
+    }
+  ]
+}

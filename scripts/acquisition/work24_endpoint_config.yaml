@@ -1,0 +1,51 @@
+# Public specification facts verified from the official Work24 service pages
+# on 2026-09-12. Live mode remains disabled because the repository has no
+# approved key and the response-to-project field mapping has not been checked
+# against a real response. `verified` means the *whole adapter* is live-tested,
+# not that the public endpoint itself is unknown.
+
+verified: false
+verified_date: null
+public_spec_verified: true
+public_spec_verified_date: "2026-09-12"
+
+base_url: "https://www.work24.go.kr"
+list_endpoint_path: "/cm/openApi/call/wk/callOpenApiSvcInfo210L01.do"
+detail_endpoint_path: "/cm/openApi/call/wk/callOpenApiSvcInfo210D01.do"
+response_format: "xml"
+
+# Exact request parameter names as shown in the confirmed spec (Korean or
+# English/code form — whichever the spec actually uses).
+auth_param_name: "authKey"
+call_type_param_name: "callTp"
+return_type_param_name: "returnType"
+detail_posting_id_param_name: "wantedAuthNo"
+detail_source_param_name: "infoSvc"
+region_param_name: "region"
+occupation_param_name: "occupation"
+employment_type_param_name: null
+start_page_param_name: "startPage"
+display_count_param_name: "display"
+start_date_param_name: null
+end_date_param_name: null
+
+# Exact response field names (per confirmed spec) that this client's
+# normalizer must read. Left null until confirmed; the normalizer refuses to
+# guess a mapping.
+response_field_map:
+  posting_id: null
+  company_name: null
+  title: null
+  region: null
+  occupation: null
+  employment_type: null
+  salary_text: null
+  detail_text: null
+  posting_url: null
+  registration_date: null
+  deadline_date: null
+
+# The official detail-service page requires Work24 attribution/linking and
+# states that unauthorized copying/distribution is prohibited. Keep full text
+# non-redistributable unless the approved service terms explicitly permit it.
+license_type: "Work24 attribution/link required; unauthorized reproduction/distribution prohibited — confirm approved-use terms before publishing full text"
