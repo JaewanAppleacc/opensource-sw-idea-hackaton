@@ -91,6 +91,91 @@ already correct and required no fix.
   (never committed) into the shell environment for the duration of the
   live-mode server process only, then that process was stopped.
 
+## Phase C (alternate) — NVIDIA NIM provider check (user-approved exception)
+
+The project's Anthropic account had no credit (see above), so as an
+explicit, user-approved one-off exception to this branch's "no new
+integrated API" scope lock, an alternate real-LLM path was added
+(`LLM_PROVIDER=nvidia`, `backend/app/providers/nvidia_provider.py`) reusing
+the same audit pipeline, evidence validator, and (initially) the same
+forced-tool-call approach as the Anthropic provider. This section only
+covers the live-call outcome; the code addition itself is described in its
+own commit.
+
+### Security incident during this check (contained)
+
+While debugging the NVIDIA key, a `.env` line was accidentally `source`d
+that contained a full pasted code sample (not just `KEY=value`), and the
+shell's parse-error output echoed the raw key value into this session's
+tool output. This was caught immediately:
+
+- The exposed key was rotated by the user before any further use.
+- The `.env` file was rewritten to contain only a single `NVIDIA_API=<value>`
+  line (no executable content), via a script that never printed the value.
+- From that point on, the key was only ever read with `grep`/`cut` into a
+  shell variable and passed directly to `curl`/`httpx` — never echoed,
+  never logged. Two format bugs surfaced this way without exposing the
+  value: leftover quotes/whitespace around the key (causing an initial
+  `401 Unauthorized`), confirmed and fixed by the user directly editing the
+  file; and the `.env` line ordering that caused the first accidental
+  `source`. Neither the rotated key nor the final working key was ever
+  displayed in this session's output.
+
+### Attempt 1 — forced tool call (same approach as Anthropic)
+
+- Model: `openai/gpt-oss-20b` (the model shown provisioned/working in the
+  user's own NVIDIA "Try it" code sample; confirmed reachable with a plain,
+  non-tool chat completion in ~0.7s).
+- `GET /api/v1/health` → `200 OK`, `provider_mode: "nvidia"`.
+- `POST /api/v1/postings/analyze` (forced `tool_choice` to
+  `submit_posting_audit`, `max_tokens: 2000`, provider's default 30s
+  timeout) → `provider_unavailable`: **"The read operation timed out"**.
+- A raw follow-up probe (same forced-tool-call body, `max_tokens: 4000`,
+  `--max-time 100`) also produced **no response at all** within 100s.
+- Interpretation: `gpt-oss-20b` is a reasoning model that appears to enter
+  an abnormally long hidden-reasoning loop when forced into this
+  tool-calling schema, rather than a network/auth failure (plain chat
+  completions on the same model+key succeeded in under a second).
+
+### Attempt 2 (final, one-shot per instruction) — JSON-object mode, no tools
+
+Per explicit instruction, exactly one further live call was made, changing
+approach rather than model/params: `response_format: {"type":"json_object"}`,
+`reasoning_effort: "low"`, `temperature: 0`, `max_tokens: 2000`, **no**
+`tools`/`tool_choice`, system prompt asking for a raw JSON object matching
+the `RawExtraction` shape, `--max-time 45`.
+
+- **Result: 45-second timeout, zero bytes returned.** No `choices[0].message.content`
+  was ever received, so no JSON parsing, no `RawExtraction.model_validate`,
+  and no evidence-offset check could even be attempted.
+- No `reasoning_content` or any other model output was captured, logged, or
+  stored anywhere (there was nothing to capture).
+
+### Result: **`BLOCKED_LIVE_STRUCTURED_OUTPUT`**
+
+Per instruction, no further models or parameters were explored after this
+second timeout. This is a distinct blocker from the Anthropic one:
+
+- Not a missing/invalid key (auth succeeded; plain completions work).
+- Not a code defect in the request-construction or response-parsing paths
+  (both the tool-call and JSON-object request bodies were well-formed;
+  NVIDIA's own endpoint accepted them and then never returned a response
+  within the given budget).
+- The `openai/gpt-oss-20b` model, as provisioned for this account, does not
+  reliably produce a structured six-field audit within a 45–100s budget for
+  either tested output mode. This may be specific to this model's
+  reasoning behavior, this account's provisioned model, or the un-tested
+  combination of `reasoning_effort`/schema complexity — no further
+  diagnosis was attempted, per the one-shot instruction.
+- The offline mock demo (Phase B) is unaffected and remains the reliable
+  path in this repository.
+
+No code change was made to `nvidia_provider.py`'s forced-tool-call
+implementation as a result of this outcome (the instruction was to modify
+it only on success). `backend/app/providers/nvidia_provider.py` remains as
+committed: functional against a model that supports fast forced-tool-call
+responses, not yet demonstrated to work against `openai/gpt-oss-20b`.
+
 ## Next step to complete Phase C
 
 A human needs to add credit / upgrade the plan on the Anthropic account
@@ -108,3 +193,9 @@ curl -s -X POST http://127.0.0.1:8812/api/v1/postings/analyze \
 ```
 and re-verify the same conditions listed under Phase B against the real
 response.
+
+For the NVIDIA path specifically, either try a non-reasoning instruct
+model that the account has provisioned (if any), or accept
+`BLOCKED_LIVE_STRUCTURED_OUTPUT` as final for this model and rely on the
+Anthropic path once credit is added — do not spend further API budget
+probing additional NVIDIA models without an explicit decision to do so.
