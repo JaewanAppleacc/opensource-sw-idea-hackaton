@@ -22,7 +22,7 @@ import os
 from typing import Any, Optional
 
 from ..errors import ProviderUnavailableError
-from .anthropic_provider import EXTRACTION_SYSTEM_PROMPT, _EXTRACTION_JSON_SCHEMA, _build_user_prompt
+from .anthropic_provider import EXTRACTION_SYSTEM_PROMPT, _EXTRACTION_JSON_SCHEMA, _build_user_prompt, _scrub_secret
 
 try:  # pragma: no cover - exercised only when the optional dependency is installed
     import httpx
@@ -86,8 +86,11 @@ class NvidiaExtractionProvider:
             payload = response.json()
         except Exception as exc:  # noqa: BLE001 - any client/network failure means "unavailable"
             # Never echo headers/body (they may echo the Authorization header
-            # back in some proxies) -- only the exception's own message.
-            raise ProviderUnavailableError(f"nvidia request failed: {exc}") from exc
+            # back in some proxies) -- only the exception's own message, and
+            # scrub the key from it defensively even so.
+            raise ProviderUnavailableError(
+                f"nvidia request failed: {_scrub_secret(str(exc), self._api_key)}"
+            ) from exc
 
         try:
             tool_calls = payload["choices"][0]["message"]["tool_calls"]

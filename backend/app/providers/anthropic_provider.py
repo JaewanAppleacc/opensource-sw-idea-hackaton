@@ -65,6 +65,17 @@ def _build_user_prompt(source_text: str, expected_occupation: Optional[str]) -> 
     return f"{occupation_hint}Posting text (use exact offsets into this string):\n\n{source_text}"
 
 
+def _scrub_secret(message: str, secret: Optional[str]) -> str:
+    """Defense in depth: some client/network exceptions could in principle
+    echo the configured key (e.g. inside a malformed-URL or connection
+    error). Never trust the SDK's error formatting alone to keep it out of
+    a message that flows into the API's error response.
+    """
+    if secret:
+        message = message.replace(secret, "[REDACTED]")
+    return message
+
+
 class AnthropicExtractionProvider:
     name = "anthropic"
 
@@ -99,7 +110,9 @@ class AnthropicExtractionProvider:
                 messages=[{"role": "user", "content": _build_user_prompt(source_text, expected_occupation)}],
             )
         except Exception as exc:  # noqa: BLE001 - any client/network failure means "unavailable"
-            raise ProviderUnavailableError(f"anthropic request failed: {exc}") from exc
+            raise ProviderUnavailableError(
+                f"anthropic request failed: {_scrub_secret(str(exc), self._api_key)}"
+            ) from exc
 
         for block in response.content:
             if getattr(block, "type", None) == "tool_use":
