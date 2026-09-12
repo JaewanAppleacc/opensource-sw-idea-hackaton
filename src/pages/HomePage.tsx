@@ -16,10 +16,12 @@ export function HomePage() {
 
   return (
     <>
-      <HeroSearch />
-      <ServiceTabs activeTab={activeTab} onChange={setActiveTab} />
-      <QuickServiceCarousel key={activeTab} items={quickMenuByTab[activeTab]} />
-      <StatisticsPanel />
+      <div className="home-hero-surface overflow-hidden pb-16">
+        <HeroSearch />
+        <ServiceTabs activeTab={activeTab} onChange={setActiveTab} />
+        <QuickServiceCarousel key={activeTab} items={quickMenuByTab[activeTab]} />
+        <StatisticsPanel />
+      </div>
       <PolicyCards />
       <UserGuide />
       <NewsAndNotices />

@@ -55,10 +55,15 @@ test.describe('고용24 클론 메인페이지', () => {
     await expect(page.getByRole('status')).toContainText('검색어를 입력해 주세요')
   })
 
-  test('인기 검색어 클릭 시 입력값이 채워지고 mock 결과가 표시된다', async ({ page }) => {
-    await page.getByRole('button', { name: '국민취업지원제도' }).click()
-    await expect(page.getByPlaceholder('필요한 서비스를 검색해보세요')).toHaveValue('국민취업지원제도')
-    await expect(page.getByRole('status')).toContainText('국민취업지원제도')
+  test('데스크톱 핵심 요소가 기준 화면과 같은 강조 비율을 유지한다', async ({ page, viewport }) => {
+    test.skip(!viewport || viewport.width < 1024, '데스크톱 전용 시각 비율 테스트')
+
+    const searchBox = await page.getByPlaceholder('필요한 서비스를 검색해보세요').locator('..').boundingBox()
+    const firstQuickIcon = await page.getByRole('tabpanel').locator('a').first().locator('span').first().boundingBox()
+
+    expect(searchBox?.height).toBeGreaterThanOrEqual(60)
+    expect(firstQuickIcon?.width).toBeGreaterThanOrEqual(130)
+    await expect(page.getByText('많이 찾은 검색어')).toHaveCount(0)
   })
 
   test('프로모션 배너 캐러셀 이전/다음/정지가 동작한다', async ({ page }) => {

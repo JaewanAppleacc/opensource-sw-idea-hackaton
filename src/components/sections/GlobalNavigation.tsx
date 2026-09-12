@@ -51,7 +51,7 @@ function NavDropdown({ item, isOpen, onOpen, onClose }: NavDropdownProps) {
         aria-expanded={isOpen}
         aria-haspopup="true"
         onClick={() => (isOpen ? onClose() : onOpen())}
-        className="flex items-center gap-1 py-4 text-[15px] font-semibold text-ink-900 transition hover:text-brand-blue focus-visible:text-brand-blue"
+        className="flex items-center gap-2 py-4 text-[17px] font-semibold text-ink-900 transition hover:text-brand-blue focus-visible:text-brand-blue"
       >
         {item.label}
         <ChevronDown
@@ -94,7 +94,7 @@ export function GlobalNavigation({ onOpenAllMenu }: GlobalNavigationProps) {
   return (
     <nav aria-label="주 메뉴" id="gnb" className="hidden border-t border-ink-border lg:block">
       <Container className="flex items-center justify-between">
-        <ul className="flex items-center gap-8">
+        <ul className="flex items-center gap-12">
           {navigationMenu.map((item) => (
             <li key={item.id}>
               <NavDropdown
@@ -110,7 +110,7 @@ export function GlobalNavigation({ onOpenAllMenu }: GlobalNavigationProps) {
         <button
           type="button"
           onClick={onOpenAllMenu}
-          className="flex items-center gap-2 py-4 text-sm font-medium text-ink-700 transition hover:text-brand-blue"
+          className="flex items-center gap-2 py-4 text-base font-semibold text-ink-700 transition hover:text-brand-blue"
         >
           <Menu size={18} aria-hidden="true" />
           전체 메뉴

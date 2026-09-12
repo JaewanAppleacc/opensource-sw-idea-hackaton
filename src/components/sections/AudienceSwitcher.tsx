@@ -42,8 +42,8 @@ export function AudienceSwitcher({ audience, onChange }: AudienceSwitcherProps) 
 
   return (
     <div className="bg-brand-blue text-white">
-      <Container className="flex h-12 items-center gap-4">
-        <div role="tablist" aria-label="이용자 구분" className="flex shrink-0 overflow-hidden rounded-md bg-white/15">
+      <Container className="flex h-12 items-center gap-5">
+        <div role="tablist" aria-label="이용자 구분" className="flex shrink-0 overflow-hidden bg-white/15">
           {(
             [
               { id: 'personal', label: '개인' },
@@ -56,7 +56,7 @@ export function AudienceSwitcher({ audience, onChange }: AudienceSwitcherProps) 
               role="tab"
               aria-selected={audience === tab.id}
               onClick={() => handleAudienceChange(tab.id)}
-              className={`px-5 py-2 text-sm font-semibold transition ${
+              className={`px-5 py-3 text-sm font-semibold transition sm:w-36 sm:px-0 ${
                 audience === tab.id ? 'bg-white text-brand-blue' : 'text-white hover:bg-white/10'
               }`}
             >
@@ -65,7 +65,7 @@ export function AudienceSwitcher({ audience, onChange }: AudienceSwitcherProps) 
           ))}
         </div>
 
-        <p className="min-w-0 flex-1 truncate text-sm" aria-live="polite">
+        <p className="min-w-0 flex-1 truncate text-sm sm:text-center sm:text-base" aria-live="polite">
           <span aria-hidden="true">📢 </span>
           {notices[noticeIndex]}
         </p>

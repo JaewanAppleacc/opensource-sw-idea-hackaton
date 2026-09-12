@@ -39,9 +39,10 @@ test.describe('전체 사용자 시연 흐름 (실제 백엔드 연동)', () => 
     await expect(page.getByRole('heading', { name: '6개 항목 분석' })).toBeVisible()
     await expect(page.getByText('공고를 분석하고 있어요...').first()).toHaveCount(0, { timeout: 15000 })
 
-    await expect(page.getByText('수도권 공고')).toBeVisible()
-    await expect(page.getByText('급여').first()).toBeVisible()
-    await expect(page.getByText('구체적으로 확인됨').first()).toBeVisible()
+    const analysisSection = page.locator('section[aria-labelledby="analysis-heading"]')
+    await expect(analysisSection.getByText('수도권 공고')).toBeVisible()
+    await expect(analysisSection.getByText('급여').first()).toBeVisible()
+    await expect(analysisSection.getByText('구체적으로 확인됨').first()).toBeVisible()
 
     // 단계 D: 근거와 확인 질문 (적어도 하나의 evidence 인용부호 또는 확인 질문이 존재)
     const hasEvidenceOrQuestion = await page
