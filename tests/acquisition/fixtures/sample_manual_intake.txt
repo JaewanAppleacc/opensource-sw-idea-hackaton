@@ -1,0 +1,34 @@
+===== JB-TEST-01 =====
+posting_id: JB-TEST-01
+region_group: jeonbuk
+municipality: 전주시
+source_name: 고용24
+source_url: https://example.invalid/postings/jb-test-01
+collection_date: 2026-09-12
+occupation: 생산직(제조 조립원)
+employment_type: 정규직
+company_name: 테스트제조(주)
+redistribution_permission: unknown
+--- FULL TEXT ---
+테스트제조(주)에서 생산직(제조 조립원)을 모집합니다. 완성차 부품 조립 및 품질 검사 업무를 담당합니다.
+문의: 010-1234-5678, hr@example.invalid
+월급 230만원(세전) 지급하며 수습기간은 3개월입니다.
+
+===== MET-TEST-01 =====
+posting_id: MET-TEST-01
+region_group: metro
+municipality: 서울특별시
+source_name: 고용24
+source_url: https://example.invalid/postings/met-test-01
+collection_date: 2026-09-12
+occupation: 생산직(제조 조립원)
+employment_type: 정규직
+company_name: 테스트제조서울(주)
+redistribution_permission: yes
+--- FULL TEXT ---
+테스트제조서울(주)에서 생산직(제조 조립원)을 모집합니다. 조립 라인 근무 및 설비 점검 업무를 담당합니다.
+월급 260만원(세전) 지급하며 수습기간은 3개월, 수습 중 급여는 동일합니다.
+
+===== SKIPPED-TEST-01 =====
+status: excluded
+excluded_reason: 중복 공고 (JB-TEST-01과 동일 채용ID)

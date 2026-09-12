@@ -7,31 +7,53 @@
 #
 # Checked: 2026-09-12 (see docs/data/METHODOLOGY.md for the research trail).
 
-inventory_version: "1.0.0"
+inventory_version: "1.1.1"
 checked_date: "2026-09-12"
 
 sources:
-  - source_name: "고용24 / 워크넷 채용정보 Open API (한국고용정보원, data.go.kr)"
-    access_method: "REST Open API via data.go.kr; requires a 인증키 (service key) issued after data.go.kr account signup and per-API 활용신청 (usage application)."
+  - source_name: "고용24 채용정보 Open API (한국고용정보원)"
+    access_method: >
+      Work24 Open API requiring an approved 인증키. RE-CONFIRMED 2026-09-12:
+      the legacy 워크넷 Open API at
+      openapi.work.go.kr has been shut down ("워크넷 OPEN-API서비스가
+      종료되었습니다") and merged into the 고용24 (Work24) Open API at
+      work24.go.kr (https://www.work24.go.kr/cm/e/a/0110/selectOpenApiIntro.do).
+      The official public service pages expose the list/detail endpoints,
+      core parameter names, required XML format, and detail fields. An issued
+      key and a live response mapping check are still required. See
+      docs/acquisition/WORK24_API_NOTES.md.
     license_terms_status: >
-      Public-data Open API distributed under 공공데이터포털 terms. Historically
-      permits reuse of the structured fields returned by the API (title,
-      occupation code, region code, employment type, salary band, dates,
-      source URL) for stated non-commercial/hackathon purposes, subject to the
-      exact terms shown on the per-API application page at the time of
-      approval. Full free-text postings are not guaranteed to be included in
-      the API response; some fields may be summarized rather than the
-      original wording. TERMS MUST BE RE-READ at the moment a real key is
-      issued, before any redistribution decision is made.
+      The official Work24 detail-service page requires a link back to the
+      Work24 detail page and attribution, and states that unauthorized copying
+      and distribution are prohibited. Treat full text as non-redistributable
+      unless the terms attached to the issued key explicitly allow publishing it.
     date_range: "Rolling/current postings only; no fixed historical date range confirmed without an approved key."
     jeonbuk_count_by_occupation: "UNKNOWN — cannot query without an approved 인증키. Not estimated or invented."
     metro_count: "UNKNOWN — same blocker."
     employment_type_availability: "Documented in the API's 공통코드 (common code) reference (data.go.kr, 한국고용정보원_워크넷 공통코드), which is itself queryable without blocking on the key for postings."
-    full_text_redistributable: "UNCONFIRMED — must be reconfirmed against the license text shown at key-issuance time, and re-checked per field before any public-repo redistribution."
+    full_text_redistributable: "No by default — the detail API documents jobCont, but the official page prohibits unauthorized reproduction/distribution. Reconfirm approved-use terms before any public-repo publication."
     blockers:
-      - "No data.go.kr account / service key available inside this agent session. Key issuance requires a human to sign up, agree to terms, and submit a usage-purpose application through the web UI — this cannot be completed non-interactively."
-      - "Approval for some data.go.kr APIs is manual and can take 1-2 business days."
+      - "No approved Work24 service key is available inside this agent session. Key issuance requires a human application."
+      - "The project's XML mapping and exact sampling-filter behavior have not been verified against a live response."
     status: "blocked_no_credentials"
+
+  - source_name: "User-provided postings — manual intake (active path, Parallel task D1)"
+    access_method: >
+      A team member with personal authorization to share a real posting
+      (their own screen copy) pastes it into the plain-text template in
+      docs/acquisition/MANUAL_INTAKE_GUIDE.md, one posting per block, with a
+      fixed neutral sampling rule (sort by recency, take from the top, no
+      cherry-picking by information richness). Ingested with
+      scripts/acquisition/manual_intake.py.
+    license_terms_status: "Case-by-case per posting via the required `redistribution_permission` (yes/no/unknown) field. `unknown`/`no` keep the full text out of the public data/intake/real_postings.jsonl entirely (private-only, in data/private/intake_raw/, gitignored); only `yes` allows the public record to carry full_text."
+    date_range: "Depends on when each batch is supplied; recorded per-record as a real `collection_date`."
+    jeonbuk_count_by_occupation: "0 ingested as of this check (2026-09-12) — tooling built and tested, no real postings supplied to this agent session yet. See REAL_DATA_ACQUISITION_HANDOFF.md."
+    metro_count: "0 ingested as of this check — same reason."
+    employment_type_availability: "Recorded per-record from the human-supplied header; no assumption made until real records exist."
+    full_text_redistributable: "Per-record, from redistribution_permission; unknown/no by default until explicitly confirmed."
+    blockers:
+      - "No real postings have been attached/ingested in this agent session yet. This is the currently-preferred path (team decision, 2026-09-12) over the API path due to key-issuance friction, but requires a human to actually supply posting text files next."
+    status: "available_but_empty"
 
   - source_name: "사람인 / 잡코리아 / 잡플래닛 (민간 채용 플랫폼)"
     access_method: "Web UI; some platforms have historically offered partner-only or deprecated public APIs, not open self-serve APIs as of this check."
@@ -83,11 +105,24 @@ occupation_feasibility_decision:
 overall_conclusion: >
   As of 2026-09-12, no real Jeonbuk/metropolitan postings have been obtained.
   The only technically-plausible, policy-compliant public source identified
-  (고용24/워크넷 Open API on data.go.kr) requires a human-completed credential
-  application that this agent session cannot perform. The data/evaluation
-  track therefore proceeds by (1) building the full rubric, schema,
-  annotation, validation, split, statistics, and evaluation pipeline against
+  (고용24 Open API) requires a human-completed credential application that
+  this agent session cannot perform; the official public specification is
+  documented, but no live XML mapping has been validated
+  (see docs/acquisition/WORK24_API_NOTES.md). The data/evaluation track
+  therefore proceeds by (1) building the full rubric, schema, annotation,
+  validation, split, statistics, and evaluation pipeline against
   clearly-labeled synthetic fixtures, and (2) documenting real data
   acquisition as the first remaining manual step before any "gold" or
   population claim can be made. No postings or statistics have been invented
   and presented as real.
+
+  2026-09-12 update (Parallel task D1): reproducible acquisition tooling for
+  both paths now exists — scripts/acquisition/work24_client.py (dry-run
+  only, refuses live calls until a human validates the response mapping
+  and WORK24_SERVICE_KEY) and scripts/acquisition/manual_intake.py (parses
+  human-supplied posting text into the shared schema, gates full-text
+  redistribution on a per-record `redistribution_permission` field). The
+  team has chosen the manual-intake path for this pass due to API
+  key-issuance friction, but zero real postings have been supplied to any
+  agent session yet — see REAL_DATA_ACQUISITION_HANDOFF.md for the current
+  BLOCKED_INSUFFICIENT_SAMPLE decision and the exact next human action.
