@@ -8,3 +8,7 @@ node_modules/
 dist/
 build/
 *.log
+
+# Real posting text stays local until redistribution rights are confirmed.
+data/private/
+data/raw_private/

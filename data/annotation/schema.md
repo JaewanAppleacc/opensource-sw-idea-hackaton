@@ -26,7 +26,8 @@ annotator's file.
   "offsets": [78, 96],
   "reason_code": "amount_and_unit_present",
   "disagreement_note": null,
-  "rubric_version": "1.0.0-draft"
+  "rubric_version": "1.0.0-draft",
+  "synthetic_test_fixture": false
 }
 ```
 
@@ -50,6 +51,9 @@ Rules:
   was unsure whether this counts as a named tool"), not the adjudicator's.
 - `rubric_version` must match the version the annotator was actually working
   from (`data/rubric/rubric.yaml: rubric_version`).
+- `synthetic_test_fixture` must be carried from the source posting through
+  both annotator files and adjudication. Real human-gold rows must explicitly
+  set it to `false`; missing provenance is rejected rather than guessed.
 
 ## Validation
 
