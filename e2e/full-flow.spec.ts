@@ -52,25 +52,23 @@ test.describe('전체 사용자 시연 흐름 - 직접 비교 경로 (/manual-an
       .catch(() => false)
     expect(hasEvidenceOrQuestion).toBeTruthy()
 
-    // 단계 E: 자금축적 비교
+    // 단계 E: 자금축적 비교 (시연용 예시값이 미리 채워져 있음)
     await expect(page.getByRole('heading', { name: '자금축적 비교', exact: true })).toBeVisible()
+    await expect(page.getByText('시연용 예시값입니다. 실제 거주지와 출퇴근 조건에 맞게 수정할 수 있습니다.')).toBeVisible()
     const metroFields = page.locator('fieldset', { hasText: '수도권' }).first()
-    const jbFields = page.locator('fieldset', { hasText: '전북' }).first()
-    await metroFields.getByLabel('세후 월급 (원)').fill('3000000')
-    await metroFields.getByLabel('주거비 + 관리비 (원/월)').fill('900000')
-    await metroFields.getByLabel('기타 생활비 (원/월)').fill('500000')
-    await metroFields.getByLabel('보증금 (원)').fill('20000000')
-    await jbFields.getByLabel('세후 월급 (원)').fill('2600000')
-    await jbFields.getByLabel('주거비 + 관리비 (원/월)').fill('400000')
-    await jbFields.getByLabel('기타 생활비 (원/월)').fill('450000')
-    await jbFields.getByLabel('보증금 (원)').fill('5000000')
+    await expect(metroFields.getByLabel('월 실수령액 (원)')).not.toHaveValue('')
 
     await page.getByRole('button', { name: '자금 비교 계산하기' }).click()
 
     await expect(page.getByText('월 가용자금').first()).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('1년 가용자금').first()).toBeVisible()
     await expect(page.getByText('3년 가용자금 (가정 기반)').first()).toBeVisible()
-    await expect(page.getByText('주거비 교차점')).toBeVisible()
+    await expect(page.getByText('조건 역전점')).toBeVisible()
+    await expect(page.getByText('주거비 역전점.')).toBeVisible()
+
+    // 입력값 변경 시 즉시 재계산 (디바운스 후 자동 호출)
+    await metroFields.getByLabel('월세 (원/월)').fill('2000000')
+    await expect(page.getByText('임금 차이 역전점.')).toBeVisible({ timeout: 10000 })
 
     // No unhandled console errors anywhere in the flow.
     expect(consoleErrors).toEqual([])
@@ -86,7 +84,9 @@ test.describe('전체 사용자 시연 흐름 - 직접 비교 경로 (/manual-an
     await candidateButtons.first().click()
 
     await expect(page.getByRole('heading', { name: '자금축적 비교', exact: true })).toBeVisible()
-    // Leave every field blank and submit.
+    // Clear a required field (defaults are pre-filled with example values) and submit.
+    const metroFields = page.locator('fieldset', { hasText: '수도권' }).first()
+    await metroFields.getByLabel('월 실수령액 (원)').fill('')
     await page.getByRole('button', { name: '자금 비교 계산하기' }).click()
     await expect(page.getByText('모든 항목을 0 이상의 숫자로 입력해 주세요.')).toBeVisible()
   })

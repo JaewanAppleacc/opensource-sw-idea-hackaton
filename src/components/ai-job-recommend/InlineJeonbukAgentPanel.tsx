@@ -1,5 +1,5 @@
 import { AlertTriangle, ChevronDown, Loader2, Sparkles, Wallet } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ApiClientError,
   analyzeByPostingId,
@@ -8,8 +8,14 @@ import {
   type PostingListItem,
 } from '../../lib/apiClient'
 import { errorCodeToMessage } from '../../lib/displayLabels'
+import { buildAxisResults, DEFAULT_SELECTED_AXES, type AxisId } from '../../lib/comparisonAxes'
+import { buildPriorityUnresolvedList } from '../../lib/priorityUnresolved'
 import { JeonbukCandidateList } from './JeonbukCandidateList'
-import { PostingAnalysisPanel, type AnalysisState } from './PostingAnalysisPanel'
+import type { AnalysisState } from './PostingAnalysisPanel'
+import { ImportantConditionsSelector } from './ImportantConditionsSelector'
+import { ComparisonAxesPanel } from './ComparisonAxesPanel'
+import { PriorityUnresolvedPanel } from './PriorityUnresolvedPanel'
+import { CompanyQuestionsPanel } from './CompanyQuestionsPanel'
 import { FinanceComparisonPanel } from './FinanceComparisonPanel'
 import { GapStatsNotice } from './GapStatsNotice'
 
@@ -33,10 +39,13 @@ interface InlineJeonbukAgentPanelProps {
 /**
  * Per-card inline expansion: "전북 일자리 비교 에이전트" -- matches the
  * given capital-area posting against the server's home-region dataset via
- * the real curated pairs (never a client-chosen region), then lets the
- * user drill into a six-field comparison and an optional finance
- * comparison. Never shown as a separate tool; always anchored to the
- * specific posting card it was opened from.
+ * the real curated pairs (never a client-chosen region), lets the user
+ * pick up to three important conditions, compares both postings across six
+ * evidence-grounded axes, surfaces the highest-priority unresolved
+ * information first, generates real questions to ask the company, and
+ * offers an optional finance comparison. Never shown as a separate tool;
+ * always anchored to the specific posting card it was opened from. Never
+ * computes or shows a combined score or a winner anywhere in this file.
  */
 export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: InlineJeonbukAgentPanelProps) {
   const [expanded, setExpanded] = useState(false)
@@ -45,6 +54,7 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
   const [metroAnalysis, setMetroAnalysis] = useState<AnalysisState>({ status: 'idle' })
   const [jeonbukAnalysis, setJeonbukAnalysis] = useState<AnalysisState>({ status: 'idle' })
   const [financeOpen, setFinanceOpen] = useState(false)
+  const [selectedAxisIds, setSelectedAxisIds] = useState<AxisId[]>(DEFAULT_SELECTED_AXES)
 
   async function handleToggle() {
     const next = !expanded
@@ -91,9 +101,32 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
     )
   }
 
+  const bothSucceeded = metroAnalysis.status === 'success' && jeonbukAnalysis.status === 'success'
   const analysisSettled =
     (metroAnalysis.status === 'success' || metroAnalysis.status === 'error') &&
     (jeonbukAnalysis.status === 'success' || jeonbukAnalysis.status === 'error')
+
+  const metroAxes = useMemo(
+    () => (metroAnalysis.status === 'success' ? buildAxisResults(metroAnalysis.analysis) : null),
+    [metroAnalysis],
+  )
+  const jeonbukAxes = useMemo(
+    () => (jeonbukAnalysis.status === 'success' ? buildAxisResults(jeonbukAnalysis.analysis) : null),
+    [jeonbukAnalysis],
+  )
+
+  const jeonbukCardLabel = `${homeRegionLabel} 후보 (${selectedCandidate?.company_name ?? selectedCandidate?.posting_id ?? ''})`
+
+  const priorityItems = useMemo(() => {
+    if (!metroAxes || !jeonbukAxes) return []
+    return buildPriorityUnresolvedList(
+      [
+        { region: 'metro', axes: metroAxes },
+        { region: 'jeonbuk', axes: jeonbukAxes },
+      ],
+      selectedAxisIds,
+    )
+  }, [metroAxes, jeonbukAxes, selectedAxisIds])
 
   return (
     <div className="mt-3 border-t border-ink-border pt-3">
@@ -150,20 +183,56 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
           )}
 
           {selectedCandidate && (
-            <div className="space-y-3 border-t border-ink-border pt-4">
-              <h4 className="text-sm font-bold text-ink-900">6개 항목 비교</h4>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <PostingAnalysisPanel title="수도권 공고" state={metroAnalysis} />
-                <PostingAnalysisPanel
-                  title={`${homeRegionLabel} 후보 (${selectedCandidate.company_name ?? selectedCandidate.posting_id})`}
-                  state={jeonbukAnalysis}
-                />
-              </div>
-              <GapStatsNotice />
+            <div className="space-y-4 border-t border-ink-border pt-4">
+              <ImportantConditionsSelector selected={selectedAxisIds} onChange={setSelectedAxisIds} />
+
+              {!analysisSettled && (
+                <p className="flex items-center gap-2 text-sm text-ink-500">
+                  <Loader2 size={16} aria-hidden="true" className="animate-spin" />
+                  공고를 분석하고 있어요...
+                </p>
+              )}
+
+              {metroAnalysis.status === 'error' && (
+                <p role="alert" className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                  <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+                  수도권 공고: {errorCodeToMessage(metroAnalysis.error.code, metroAnalysis.error.message)}
+                </p>
+              )}
+              {jeonbukAnalysis.status === 'error' && (
+                <p role="alert" className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                  <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+                  {homeRegionLabel} 후보: {errorCodeToMessage(jeonbukAnalysis.error.code, jeonbukAnalysis.error.message)}
+                </p>
+              )}
+
+              {bothSucceeded && metroAxes && jeonbukAxes && (
+                <>
+                  <h4 className="text-sm font-bold text-ink-900">수정된 6개 비교축</h4>
+                  <ComparisonAxesPanel
+                    metroLabel="수도권 공고"
+                    jeonbukLabel={jeonbukCardLabel}
+                    metroAxes={metroAxes}
+                    jeonbukAxes={jeonbukAxes}
+                    selectedAxisIds={selectedAxisIds}
+                  />
+                  <PriorityUnresolvedPanel
+                    items={priorityItems}
+                    metroLabel="수도권 공고"
+                    jeonbukLabel={jeonbukCardLabel}
+                  />
+                  <CompanyQuestionsPanel
+                    items={priorityItems}
+                    metroLabel="수도권 공고"
+                    jeonbukLabel={jeonbukCardLabel}
+                  />
+                  <GapStatsNotice />
+                </>
+              )}
             </div>
           )}
 
-          {analysisSettled && (
+          {analysisSettled && bothSucceeded && (
             <div className="border-t border-ink-border pt-4">
               {!financeOpen ? (
                 <button

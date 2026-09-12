@@ -89,6 +89,28 @@ Judgments use exactly three values: `IMPLEMENT_NOW`, `NEXT_STAGE`,
    wrapper would cost us that control for no code we're not already
    writing in twenty lines."
 
+### A precise claim about hallucination control (do not overstate this)
+
+**Do not say, in a demo or in writing:** "LangChain이 LLM의 환각을 해결한다"
+or "LangChain을 사용했기 때문에 공고에 없는 정보를 생성하지 않는다." LangChain
+is not installed in this codebase (`package.json`/`requirements.txt`), and
+even if it were, a chain-orchestration library is not itself a hallucination
+guard — it would only be as grounded as whatever validation is wired around
+it, which is exactly the harness this codebase already has (section 5).
+
+**Accurate presentation sentence:** "LLM 출력을 그대로 사용하지 않고, 원문
+근거와 출력 스키마를 검증하는 Evidence-Grounded Harness를 적용했습니다.
+LangChain은 향후 문서 로더와 분석 체인을 표준화할 때 검토할 수 있지만,
+환각 방지의 직접적인 근거로 주장하지 않습니다."
+
+The actual controls doing this work today: Pydantic closed schemas
+(`extra=forbid` everywhere), the closed `confirmed/vague/absent` enum,
+exact-substring evidence verification, exact offset verification,
+deterministic downgrade-only rules, "no evidence → absent," verification
+actions, provider fail-closed behavior, a bounded retry limit, secret
+scrubbing, and the test suite backing all of it — see section 5's harness
+diagram for exactly where each one sits in the pipeline.
+
 ---
 
 ## 3. RAG
