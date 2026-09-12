@@ -1,5 +1,12 @@
 # Project instructions: Jeonbuk Career Due-Diligence Agent
 
+## Canonical repository
+
+- GitHub: https://github.com/JaewanAppleacc/opensource-sw-idea-hackaton.git
+- Remote: `origin`
+- Default branch: `main`
+- Keep all implementation, data, tests, and handoff documents for this project in this repository. Do not create a parallel implementation elsewhere.
+
 ## Mission
 
 Build the AI, backend, data, and evaluation side of a hackathon MVP for Jeonbuk youth.
@@ -116,5 +123,4 @@ The backend is complete when a cached demo can run without internet and perform:
 `metropolitan posting -> curated Jeonbuk match -> six-field audit -> evidence validation -> verification actions -> deterministic monthly-surplus comparison`.
 
 The evidence and error paths must be tested. A polished but ungrounded demo is not complete.
-
 
