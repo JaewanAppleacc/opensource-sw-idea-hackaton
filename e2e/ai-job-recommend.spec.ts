@@ -144,4 +144,50 @@ test.describe('AI추천(일자리) 목록 화면 (전북 일자리 비교 에이
       await expect(panel.getByText(secondCandidateLabel).first()).toBeVisible()
     }
   })
+
+  // TASK "기술 영문 제거·연구직 시연 전환·UI 고도화" section 15 items 1-3, 15-16.
+  test('영문 데이터셋 설명과 개발 문서 파일명이 화면 어디에도 노출되지 않는다', async ({ page }) => {
+    await page.goto('/ai-job-recommend')
+    const list = page.getByTestId('capital-posting-list')
+    await expect(list.getByRole('listitem').first()).toBeVisible({ timeout: 10000 })
+    await list.getByRole('listitem').first().getByRole('button', { name: /지역 비교/ }).click()
+    await expect(page.getByTestId('jeonbuk-comparison-panel').getByText('전북 비교 공고')).toBeVisible()
+
+    const bodyText = await page.locator('body').innerText()
+    expect(bodyText).not.toMatch(/These comparison postings|REAL_DATA_ACQUISITION_HANDOFF|deterministic collection order|MVP dataset/i)
+    // 백엔드 원시 지역 코드 리터럴("jeonbuk")도 사용자 문구에 노출되지 않아야 한다.
+    expect(bodyText).not.toMatch(/\bjeonbuk\b/)
+  })
+
+  test('한국어 데이터 안내가 DEMO 칩을 통해 항상 접근 가능하다', async ({ page }) => {
+    await page.goto('/ai-job-recommend')
+    await page.getByText('DEMO · 전북').click()
+    await expect(
+      page.getByText('실제 고용24 공고 표본을 활용한 해커톤 시연입니다. 같은 직종과 고용형태의 전북 공고를 표시하며, 표시'),
+    ).toBeVisible()
+  })
+
+  test('연구직 실제 데이터가 없으므로 데모 프로필·추천 공고·전북 후보 직종이 제조·조립으로 유지된다 (BLOCKED_RESEARCH_DATA)', async ({
+    page,
+  }) => {
+    // data/intake/real_postings.jsonl, data/intake/occupation_feasibility.json에
+    // 생산직(제조 조립원) 외 연구개발 직종 데이터가 없음을 확인했다 (2026-09-13).
+    // 따라서 이 시연은 프로필을 연구직으로 전환하지 않는다 -- TASK section 5 "실패 시" 규칙.
+    await page.goto('/ai-job-recommend')
+    const chipRow = page.getByLabel('현재 시연 직종·고용형태·생활권')
+    await expect(chipRow.getByText('제조·조립')).toBeVisible()
+    await expect(chipRow).not.toContainText('제품개발')
+    await expect(chipRow).not.toContainText('연구')
+
+    await page.getByRole('button', { name: /전북 데모 프로필로 시작/ }).click()
+    const profileText = await page.getByText('전북 청년 데모 사용자').locator('..').innerText()
+    expect(profileText).toContain('제조·조립')
+    expect(profileText).not.toContain('제품개발')
+
+    const list = page.getByTestId('capital-posting-list')
+    await expect(list.getByRole('listitem').first()).toBeVisible({ timeout: 10000 })
+    const listText = await list.innerText()
+    expect(listText).toContain('생산직')
+    expect(listText).not.toMatch(/제품개발|연구원|연구개발/)
+  })
 })

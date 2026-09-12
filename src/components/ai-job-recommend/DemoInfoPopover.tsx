@@ -22,12 +22,15 @@ export function DemoInfoPopover() {
       <div className="absolute right-0 z-20 mt-2 w-[19rem] space-y-3 rounded-card border border-ink-border bg-white p-4 text-xs leading-relaxed text-ink-600 shadow-soft sm:w-80">
         <p className="font-semibold text-ink-900">데모 모드 · 사전 검증된 분석 결과</p>
         <p>
-          본 서비스는 고용24 공식 서비스가 아닌 해커톤 시연용 프로토타입입니다. 6개 항목 분석은 결정론적(mock)
-          추출기와 실제 백엔드 검증 로직(스키마·근거·규칙 보정)으로 동작하며, 실시간 Anthropic/NVIDIA 호출은
-          사용하지 않습니다.
+          실제 고용24 공고 표본을 활용한 해커톤 시연입니다. 같은 직종과 고용형태의 전북 공고를 표시하며, 표시
+          순서는 유사도 순위가 아닙니다.
         </p>
+        <p>본 서비스는 고용24 공식 서비스가 아닌 해커톤 시연용 프로토타입입니다.</p>
         <ul className="list-disc space-y-1 pl-4 text-ink-500">
-          <li>전북 비교 공고는 동일하게 정규화한 모집직종·고용형태 기준이며, 유사도 순위가 아닙니다.</li>
+          <li>
+            6개 항목 분석은 결정론적(mock) 추출기와 실제 백엔드 검증 로직(스키마·근거·규칙 보정)으로 동작하며,
+            실시간 Anthropic/NVIDIA 호출은 사용하지 않습니다.
+          </li>
           <li>
             잡케어 연동은 해커톤 시연용 프로필이며, 실제 잡케어 API와 연동되지 않았습니다. 취업확률·역량점수·심리검사
             결과는 제공하지 않습니다.

@@ -209,7 +209,9 @@ test.describe('지역 기반 커리어 의사결정 에이전트 - 실제 데이
     // 것 자체는 정직한 공개이므로 허용하되, 실제 숫자 점수·확률 값(예:
     // "87점", "72%")은 페이지 어디에도 없어야 한다.
     await expect(page.getByText('전북 청년 데모 사용자')).toBeVisible()
-    await expect(page.getByText('제조·조립')).toBeVisible()
+    // 헤더의 현재 시연 직종·고용형태 칩과 프로필 요약 줄 양쪽에 "제조·조립"이
+    // 나타나므로(TASK "기술 영문 제거·연구직 시연 전환" section 7) .first()로 무관하게 확인한다.
+    await expect(page.getByText('제조·조립').first()).toBeVisible()
     await expect(page.getByText('정규직').first()).toBeVisible()
     const bodyText = await page.locator('body').innerText()
     expect(bodyText).not.toMatch(/\d+\s*%|\d+\s*점(?!수)|\d+\s*\/\s*100/)

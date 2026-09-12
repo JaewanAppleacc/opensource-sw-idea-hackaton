@@ -88,6 +88,16 @@ export function AiJobRecommendPage() {
             <p className="mt-1 text-sm text-ink-500">
               수도권 공고를 살펴보고 전북의 같은 직종 공고를 함께 비교해보세요.
             </p>
+            <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="현재 시연 직종·고용형태·생활권">
+              {[DEMO_PROFILE.interestedOccupation, DEMO_PROFILE.interestedEmploymentType, '전북'].map((tag) => (
+                <li
+                  key={tag}
+                  className="rounded-pill border border-ink-border bg-surface-muted px-2 py-0.5 text-[11px] font-medium text-ink-500"
+                >
+                  {tag}
+                </li>
+              ))}
+            </ul>
           </div>
           <DemoInfoPopover />
         </div>
