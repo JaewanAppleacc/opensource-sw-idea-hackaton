@@ -53,8 +53,10 @@ ComparisonRequest
 defaulting to `"jeonbuk"` — `backend/app/datasets/loader.py::home_region()`)
 already realizes this without a graph database: the loader only ever
 returns rows matching the configured home region, and
-`real_postings.py::find_home_region_matches` double-checks the paired
-candidate's region again before returning. No request model
+`real_postings.py::find_home_region_matches` double-checks every candidate's
+region again before returning (up to three: the pre-linked pair first, then
+other same-group postings in deterministic collection order -- never a
+similarity ranking). No request model
 (`HomeRegionMatchRequest`, `AnalyzeByIdRequest`) has a region field, so a
 client can never request a different region than the server's configured
 one — this is server-enforced, not a UI convention.

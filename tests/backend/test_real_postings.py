@@ -108,17 +108,114 @@ def test_private_text_available_reflects_live_filesystem(real_data):
     assert by_id["TEST-MET-02"].private_text_available is False
 
 
-def test_find_home_region_matches_returns_paired_candidate(real_data):
+def test_find_home_region_matches_puts_the_pre_linked_pair_first(real_data):
+    # The base fixture has TEST-MET-01<->TEST-JB-01 pre-linked, plus
+    # TEST-JB-02 as an unlinked same-group posting -- both are eligible, so
+    # the response has exactly 2 candidates, pre-linked one first.
     result = real_postings.find_home_region_matches("TEST-MET-01")
-    assert len(result.candidates) == 1
-    assert result.candidates[0].posting_id == "TEST-JB-01"
+    assert [c.posting_id for c in result.candidates] == ["TEST-JB-01", "TEST-JB-02"]
     assert result.candidates[0].region == "jeonbuk"
-    assert result.candidates[0].source_text is None  # never leaked through match layer
+    assert all(c.source_text is None for c in result.candidates)  # never leaked through match layer
 
 
-def test_find_home_region_matches_raises_for_unpaired_metro_posting(real_data):
+def test_find_home_region_matches_falls_back_to_group_when_unpaired(real_data):
+    # TEST-MET-02 has no pre-linked pair, but TEST-JB-01/02 are still
+    # eligible same-group candidates -- this must not be "no match".
+    result = real_postings.find_home_region_matches("TEST-MET-02")
+    assert [c.posting_id for c in result.candidates] == ["TEST-JB-01", "TEST-JB-02"]
+
+
+def test_find_home_region_matches_caps_at_three_and_stays_deterministic(real_data):
+    postings_path = real_data["postings_path"]
+    write_jsonl(
+        postings_path,
+        [
+            metro_posting("TEST-MET-01"),
+            home_posting("TEST-JB-01"),
+            home_posting("TEST-JB-02"),
+            home_posting("TEST-JB-03"),
+            home_posting("TEST-JB-04"),
+        ],
+    )
+    real_postings.clear_real_postings_cache()
+
+    first = real_postings.find_home_region_matches("TEST-MET-01")
+    ids = [c.posting_id for c in first.candidates]
+    assert len(ids) == 3
+    assert ids[0] == "TEST-JB-01"  # pre-linked pair still first
+    assert len(set(ids)) == 3  # no duplicate posting_id
+
+    second = real_postings.find_home_region_matches("TEST-MET-01")
+    assert [c.posting_id for c in second.candidates] == ids  # deterministic across repeated calls
+
+
+def test_find_home_region_matches_returns_all_when_fewer_than_three_exist(real_data):
+    # Base fixture only has two eligible candidates (TEST-JB-01, TEST-JB-02)
+    # -- must return exactly those two, never padded with a fake third.
+    result = real_postings.find_home_region_matches("TEST-MET-01")
+    assert len(result.candidates) == 2
+
+
+def test_find_home_region_matches_excludes_a_different_occupation(real_data):
+    postings_path = real_data["postings_path"]
+    write_jsonl(
+        postings_path,
+        [
+            metro_posting("TEST-MET-01"),
+            home_posting("TEST-JB-01"),
+            home_posting("TEST-JB-OTHER-OCC", occupation="사무직"),
+        ],
+    )
+    real_postings.clear_real_postings_cache()
+    result = real_postings.find_home_region_matches("TEST-MET-01")
+    ids = [c.posting_id for c in result.candidates]
+    assert "TEST-JB-OTHER-OCC" not in ids
+
+
+def test_find_home_region_matches_excludes_a_different_employment_type(real_data):
+    postings_path = real_data["postings_path"]
+    write_jsonl(
+        postings_path,
+        [
+            metro_posting("TEST-MET-01"),
+            home_posting("TEST-JB-01"),
+            home_posting("TEST-JB-PARTTIME", employment_type="계약직"),
+        ],
+    )
+    real_postings.clear_real_postings_cache()
+    result = real_postings.find_home_region_matches("TEST-MET-01")
+    ids = [c.posting_id for c in result.candidates]
+    assert "TEST-JB-PARTTIME" not in ids
+
+
+def test_find_home_region_matches_excludes_synthetic_fixture_rows(real_data):
+    postings_path = real_data["postings_path"]
+    write_jsonl(
+        postings_path,
+        [
+            metro_posting("TEST-MET-01"),
+            home_posting("TEST-JB-01"),
+            home_posting("TEST-JB-SYNTHETIC", synthetic_test_fixture=True),
+        ],
+    )
+    real_postings.clear_real_postings_cache()
+    result = real_postings.find_home_region_matches("TEST-MET-01")
+    ids = [c.posting_id for c in result.candidates]
+    assert "TEST-JB-SYNTHETIC" not in ids
+
+
+def test_find_home_region_matches_raises_when_no_eligible_candidate_exists(real_data):
+    postings_path = real_data["postings_path"]
+    write_jsonl(
+        postings_path,
+        [
+            metro_posting("TEST-MET-UNIQUE", occupation="특수직"),
+            home_posting("TEST-JB-01"),  # different occupation, not eligible
+        ],
+    )
+    real_postings.clear_real_postings_cache()
     with pytest.raises(NoMatchFoundError):
-        real_postings.find_home_region_matches("TEST-MET-02")
+        real_postings.find_home_region_matches("TEST-MET-UNIQUE")
 
 
 def test_find_home_region_matches_raises_for_unknown_posting_id(real_data):
@@ -126,9 +223,11 @@ def test_find_home_region_matches_raises_for_unknown_posting_id(real_data):
         real_postings.find_home_region_matches("NOT-A-REAL-ID")
 
 
-def test_home_region_enforcement_rejects_pair_outside_configured_region(real_data, monkeypatch):
+def test_home_region_enforcement_never_surfaces_a_pair_outside_configured_region(real_data, monkeypatch):
     # Simulate a future multi-region pairs file containing an out-of-region
-    # candidate; the server must never surface it even though the pair exists.
+    # candidate; the server must never surface it even though the pair
+    # exists -- but a same-group posting that *is* in the home region must
+    # still come through via the group fallback.
     pairs_path = real_data["pairs_path"]
     write_jsonl(
         pairs_path,
@@ -153,8 +252,10 @@ def test_home_region_enforcement_rejects_pair_outside_configured_region(real_dat
         ],
     )
     real_postings.clear_real_postings_cache()
-    with pytest.raises(NoMatchFoundError):
-        real_postings.find_home_region_matches("TEST-MET-02")
+    result = real_postings.find_home_region_matches("TEST-MET-02")
+    ids = [c.posting_id for c in result.candidates]
+    assert ids == ["TEST-JB-01"]
+    assert "TEST-JB-02-OTHER-REGION" not in ids
 
 
 def test_resolve_private_text_raises_when_missing(real_data):
@@ -201,11 +302,32 @@ def test_api_home_region_listing(client, real_data):
 def test_api_home_region_matches(client, real_data):
     response = client.post("/api/v1/postings/home-region-matches", json={"metro_posting_id": "TEST-MET-01"})
     assert response.status_code == 200
-    assert response.json()["candidates"][0]["posting_id"] == "TEST-JB-01"
+    body = response.json()
+    assert body["candidates"][0]["posting_id"] == "TEST-JB-01"
+    assert len(body["candidates"]) == 2  # base fixture has exactly two eligible candidates
+    assert all(c["source_text"] is None for c in body["candidates"])  # MatchCandidate never carries full_text here
 
 
-def test_api_home_region_matches_no_match_is_404(client, real_data):
+def test_api_home_region_matches_group_fallback_when_unpaired(client, real_data):
+    # TEST-MET-02 has no pre-linked pair, but still has eligible same-group
+    # candidates -- this is a 200 with candidates, not a 404.
     response = client.post("/api/v1/postings/home-region-matches", json={"metro_posting_id": "TEST-MET-02"})
+    assert response.status_code == 200
+    ids = [c["posting_id"] for c in response.json()["candidates"]]
+    assert ids == ["TEST-JB-01", "TEST-JB-02"]
+
+
+def test_api_home_region_matches_no_eligible_candidate_is_404(client, real_data):
+    postings_path = real_data["postings_path"]
+    write_jsonl(
+        postings_path,
+        [
+            metro_posting("TEST-MET-UNIQUE", occupation="특수직"),
+            home_posting("TEST-JB-01"),
+        ],
+    )
+    real_postings.clear_real_postings_cache()
+    response = client.post("/api/v1/postings/home-region-matches", json={"metro_posting_id": "TEST-MET-UNIQUE"})
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "no_match_found"
 

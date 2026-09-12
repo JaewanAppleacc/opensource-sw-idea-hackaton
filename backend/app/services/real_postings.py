@@ -4,12 +4,18 @@ resolution for the inline Jeonbuk comparison agent.
 Kept entirely separate from `app.datasets.loader` / `app.services.matching`
 (the synthetic-fixture-oriented, occupation-fuzzy-match path used by the
 existing `/postings/match` endpoint) so nothing about that already-tested
-behavior changes. This module instead uses the real, curated 1:1 pairing
-already computed by the acquisition track
-(`data/intake/real_matched_pairs.jsonl`) -- more precise than re-deriving a
-match from an occupation string, and it can never accidentally return a
-posting from the wrong region because it only ever follows an explicit,
-pre-computed pair.
+behavior changes.
+
+`find_home_region_matches` returns up to three home-region comparison
+candidates for one capital-area posting: postings with the same normalized
+occupation and employment_type as the query, from the current real 10:10
+batch. The order is a deterministic display order, not a similarity
+ranking -- the acquisition track's pre-linked pair
+(`data/intake/real_matched_pairs.jsonl`) comes first when it exists and
+still qualifies, then any other same-group home-region postings follow in
+the batch's collection order. Nothing here claims a returned candidate is
+the most similar or best-fit local alternative, and duties/skills are never
+used to choose or order candidates (see `REAL_DATASET_DESCRIPTION` below).
 
 Every function here is read-only over `data/intake/**` (public, tracked)
 and `data/private/intake_raw/**` (gitignored, real posting text). Nothing
@@ -30,11 +36,14 @@ from .matching import DATASET_DESCRIPTION as SYNTHETIC_DATASET_DESCRIPTION  # no
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 
+MAX_HOME_REGION_CANDIDATES = 3
+
 REAL_DATASET_DESCRIPTION = (
-    "This candidate comes from a real, curated 10:10 matched-pair batch collected for this MVP "
-    "(see REAL_DATA_ACQUISITION_HANDOFF.md). It is not a claim that this is the best or only "
-    "matching posting available, and it is not a claim that the underlying occupation sample "
-    "represents the whole regional labor market."
+    "These comparison postings come from a real 10:10 MVP dataset (see REAL_DATA_ACQUISITION_HANDOFF.md). "
+    "The first candidate is the pre-linked record, followed by other home-region postings with the same "
+    "normalized occupation and employment type in deterministic collection order. The order is not a "
+    "similarity ranking, and the candidates are not claimed to be the best or only local alternatives, nor "
+    "that the underlying occupation sample represents the whole regional labor market."
 )
 
 
@@ -125,13 +134,62 @@ def list_capital_area_postings() -> PostingListResponse:
     )
 
 
+def _is_eligible_home_candidate(record: dict, *, occupation: str, employment_type: str) -> bool:
+    """Every condition a home-region comparison candidate must satisfy.
+
+    Applied uniformly to the pre-linked pair and to every group-fallback
+    candidate alike -- there is no separate, looser check for the pre-linked
+    one. Never a similarity/relevance judgement: occupation and
+    employment_type are compared as the normalized strings already present
+    in the intake data, not re-derived or fuzzy-matched.
+    """
+    return (
+        record.get("region_group", "").strip().lower() == home_region()
+        and record.get("occupation") == occupation
+        and record.get("employment_type") == employment_type
+        and not record.get("synthetic_test_fixture", False)
+    )
+
+
+def _to_match_candidate(record: dict) -> MatchCandidate:
+    # Both occupation and employment_type are hard filter conditions (see
+    # _is_eligible_home_candidate), so every returned candidate matches on
+    # both -- there is no such thing as a "mismatch_fields" entry here.
+    return MatchCandidate(
+        posting_id=record["posting_id"],
+        source_id=record.get("source_name"),
+        source_url=record.get("source_id_url"),
+        region=record.get("region_group", home_region()),
+        municipality=record.get("municipality"),
+        occupation=record["occupation"],
+        employment_type=record["employment_type"],
+        company_name=record.get("company_name"),
+        source_text=None,  # never leak real text through the match/listing layer
+        is_synthetic=bool(record.get("synthetic_test_fixture")),
+        matching_fields=["occupation", "employment_type"],
+        mismatch_fields=[],
+        description=REAL_DATASET_DESCRIPTION,
+    )
+
+
 def find_home_region_matches(metro_posting_id: str) -> MatchResponse:
-    """Real curated-pair lookup, scoped to the server's configured home
-    region. A metro posting whose paired counterpart is not in the home
-    region (not possible in the current single-region batch, but checked
-    explicitly so this stays correct once a second region pack exists)
-    is treated as no match rather than ever returning a candidate from an
-    unconfigured region.
+    """Up to MAX_HOME_REGION_CANDIDATES home-region comparison candidates
+    for one capital-area posting, scoped to the server's configured home
+    region.
+
+    Candidate order (deterministic, never a similarity ranking):
+      1. The acquisition track's pre-linked pair
+         (data/intake/real_matched_pairs.jsonl), if it exists and still
+         satisfies every eligibility condition.
+      2. Any other home-region postings with the same normalized
+         occupation + employment_type, in the intake file's collection
+         order, filling up to MAX_HOME_REGION_CANDIDATES and skipping
+         anything already added.
+
+    A metro posting outside the current batch, or one with zero eligible
+    home-region postings in its occupation/employment_type group, raises
+    NoMatchFoundError -- candidates are never padded with a posting from a
+    different group, region, or the synthetic fixture path.
     """
     postings_by_id = _load_real_postings_by_id(str(_real_postings_path()))
     metro_record = postings_by_id.get(metro_posting_id)
@@ -141,55 +199,49 @@ def find_home_region_matches(metro_posting_id: str) -> MatchResponse:
             details={"posting_id": metro_posting_id},
         )
 
+    occupation = metro_record["occupation"]
+    employment_type = metro_record["employment_type"]
+
+    ordered_ids: list[str] = []
+
+    # Step 1: the pre-linked pair, if any, comes first -- but only if it
+    # still passes every eligibility condition (region, group, synthetic
+    # flag). A pair that fails one of these is simply skipped here, not
+    # substituted with anything; step 2 never re-adds it either, since it
+    # applies the exact same check.
     pairs = _load_real_pairs(str(_real_matched_pairs_path()))
-    candidates: list[MatchCandidate] = []
     for pair in pairs:
         if pair.get("metro_posting_id") != metro_posting_id:
             continue
         home_id = pair.get("jeonbuk_posting_id")
         home_record = postings_by_id.get(home_id) if home_id else None
-        if home_record is None:
+        if home_record is not None and _is_eligible_home_candidate(
+            home_record, occupation=occupation, employment_type=employment_type
+        ):
+            ordered_ids.append(home_record["posting_id"])
+
+    # Step 2: remaining same-group home-region postings, in the order they
+    # appear in the intake file -- not sorted by any notion of fit.
+    for record in postings_by_id.values():
+        if len(ordered_ids) >= MAX_HOME_REGION_CANDIDATES:
+            break
+        posting_id = record.get("posting_id")
+        if posting_id in ordered_ids:
             continue
-        if home_record.get("region_group", "").strip().lower() != home_region():
-            # Server-side region-pack enforcement: never surface a
-            # candidate outside the configured home region, even if a
-            # (currently hypothetical) future pairs file contained one.
-            continue
+        if _is_eligible_home_candidate(record, occupation=occupation, employment_type=employment_type):
+            ordered_ids.append(posting_id)
 
-        matching_fields = ["occupation"]
-        mismatch_fields: list[str] = []
-        if home_record.get("employment_type") == metro_record.get("employment_type"):
-            matching_fields.append("employment_type")
-        else:
-            mismatch_fields.append("employment_type")
-
-        candidates.append(
-            MatchCandidate(
-                posting_id=home_record["posting_id"],
-                source_id=home_record.get("source_name"),
-                source_url=home_record.get("source_id_url"),
-                region=home_record.get("region_group", home_region()),
-                municipality=home_record.get("municipality"),
-                occupation=home_record["occupation"],
-                employment_type=home_record["employment_type"],
-                company_name=home_record.get("company_name"),
-                source_text=None,  # never leak real text through the match/listing layer
-                is_synthetic=bool(home_record.get("synthetic_test_fixture")),
-                matching_fields=matching_fields,
-                mismatch_fields=mismatch_fields,
-                description=REAL_DATASET_DESCRIPTION,
-            )
-        )
-
-    if not candidates:
+    if not ordered_ids:
         raise NoMatchFoundError(
             f"no {home_region()} posting matched to posting_id={metro_posting_id!r}",
             details={"posting_id": metro_posting_id, "home_region": home_region()},
         )
 
+    candidates = [_to_match_candidate(postings_by_id[pid]) for pid in ordered_ids[:MAX_HOME_REGION_CANDIDATES]]
+
     return MatchResponse(
-        query_occupation=metro_record["occupation"],
-        query_employment_type=metro_record.get("employment_type"),
+        query_occupation=occupation,
+        query_employment_type=employment_type,
         candidates=candidates,
         dataset_description=REAL_DATASET_DESCRIPTION,
     )

@@ -147,7 +147,7 @@ npm run dev
 - **프런트에 "백엔드 서버에 연결할 수 없습니다" 배너가 뜸** → 터미널 1에서 백엔드가 살아있는지 확인 (`curl http://localhost:8000/api/v1/health`), 죽었으면 위 실행 명령으로 재시작. 프런트는 새로고침 없이 다음 액션에서 자동으로 재시도합니다.
 - **수도권 공고 목록이 비어 있음** → `data/intake/real_postings.jsonl`이 존재하는지 확인하세요. 이 파일은 tracked이므로 항상 존재해야 합니다.
 - **"실제 원문 데이터가 연결되지 않은 데모 환경입니다" 오류** → `data/private/intake_raw/<posting_id>.json`이 이 머신에 없다는 뜻입니다 (의도된 fail-closed 동작 — `REAL_DATA_ACQUISITION_HANDOFF.md`/`docs/data/HUMAN_ANNOTATION_RUNBOOK.md` 참고). private 데이터는 gitignored이므로 시연 머신에 별도로 준비해야 합니다.
-- **전북 후보가 안 뜸** → 현재 실제 배치는 10:10 매칭 쌍만 존재합니다(`data/intake/real_matched_pairs.jsonl`). 매칭 쌍이 없는 수도권 공고는 "현재 검증된 전북 비교 후보가 없습니다."가 정상 동작입니다.
+- **전북 후보가 안 뜸** → 전북 후보는 사전 연결된 매칭 쌍(`data/intake/real_matched_pairs.jsonl`)이 있으면 그 공고를 1순위로, 이어서 동일하게 정규화된 모집직종·고용형태의 다른 전북 공고를 수집 순서대로 최대 3건까지 보여줍니다(유사도 순위 아님). 현재 실제 배치(10:10)는 전 항목이 동일한 하나의 직종·고용형태 그룹이라 사실상 모든 수도권 공고가 최소 2건 이상의 후보를 받습니다. 그래도 후보가 안 뜨면 "현재 표시할 수 있는 전북 비교 후보가 없습니다."가 표시되며 — 이는 해당 수도권 공고와 동일한 정규화된 직종·고용형태의 전북 공고가 현재 배치에 전혀 없다는 뜻입니다.
 - **분석이 멈춤/느림** → mock provider는 네트워크를 쓰지 않으므로 수 초 내 응답해야 합니다. 20초 이상 걸리면 프런트가 자체적으로 타임아웃 오류를 표시합니다 — 백엔드 터미널 로그를 확인하세요.
 - **완전히 막히면** → 두 터미널을 모두 종료하고 실행 순서(1번)를 처음부터 다시 수행하세요. `/manual-analysis`의 합성 fixture(`demo/anchors.json`, `data/postings/postings.jsonl`) 경로는 private 데이터 없이도 항상 동작하는 대체 시연 경로입니다.
 
@@ -164,7 +164,7 @@ Gold 검증(2명의 독립적인 사람 라벨링)은 아직 수행되지 않았
 - 실제 20건 표본은 확보했으나 재배포 권리는 건별 미확인 — `REAL_DATA_ACQUISITION_HANDOFF.md`
 - `GET /data/gap-stats`는 human gold가 없어 항상 `ready: false` (정상 동작, 화면에도 그대로 표시)
 - 실시간 Anthropic/NVIDIA 호출 미검증 (계정 크레딧/모델 프로비저닝 문제) — `docs/validation/LIVE_LLM_SMOKE.md`
-- 프런트엔드는 고용24 공식 서비스가 아닌 비공식 학습용 클론이며, 전북 비교 후보는 합성 데모 데이터셋(`data/postings/postings.jsonl`)에서만 가져옵니다 — 실제 비공개 원문(`data/private/**`)은 절대 프런트에 노출하지 않습니다.
+- 프런트엔드는 고용24 공식 서비스가 아닌 비공식 학습용 클론입니다. AI추천 화면(`/ai-job-recommend`)의 전북 비교 후보는 실제 데이터(`data/intake/real_postings.jsonl`, `data/intake/real_matched_pairs.jsonl`)에서 가져오며, 보조 경로인 `/manual-analysis`만 합성 데모 데이터셋(`data/postings/postings.jsonl`)을 사용합니다 — 두 경로 모두 실제 비공개 원문(`data/private/**`)은 절대 프런트에 노출하지 않고, `posting_id` 기준 서버 측 조회로만 분석합니다.
 
 ## 아직 구현·검증되지 않음
 
@@ -175,5 +175,33 @@ Gold 검증(2명의 독립적인 사람 라벨링)은 아직 수행되지 않았
 - 전북 청년 순유출 감소라는 장기 인과효과
 - 브라우저 확장프로그램, 라이브 채용사이트 연동, 운영 배포
 - **"전북 채용공고 정보 개선 리포트" 집계 화면** (실제 표본 6개 축별 confirmed/vague/absent 분포 시각화). 시간 부족으로 이번 브랜치에서는 구현하지 않음 — 데이터는 이미 존재하므로(`data/private/ai_reviews/ai_consensus_adjudicated.jsonl`), 구현 시 새 화면과 "실제 전북 공고 10건을 대상으로 한 해커톤 시범 분석이며 전북 전체 채용시장을 대표하지 않습니다." 문구만 추가하면 됨.
+
+## 전북 비교 후보 조회: 현재 MVP vs. 향후 실제 고용24 연동
+
+### 현재 MVP (구현됨)
+
+```text
+수도권 공고 선택
+→ 정규화된 모집직종·고용형태가 같은 전북 공고를 최대 3건 조회
+→ 첫 후보는 기존 사전 연결(pre-linked) 매칭 쌍 공고
+→ 나머지는 동일 그룹 전북 공고를 공개 데이터의 수집 순서대로 채움
+→ 표시 순서는 유사도 순위가 아니며, 가장 적합하거나 유일한 지역 대안이라는 의미는 아님
+→ 사용자가 전북 후보 1건 선택
+→ 선택한 전북 공고와 수도권 공고에 대해서만 기존 6필드 비교 실행 (나머지 후보는 분석하지 않음)
+```
+
+담당업무·기술 유사도로 후보를 정렬하지 않습니다 — 후보 선정 조건은 오직 `region_group`(서버 설정 `home_region` 강제), 정규화된 `occupation`, `employment_type`, `synthetic_test_fixture == false`뿐입니다 (`backend/app/services/real_postings.py::find_home_region_matches`). 발표에서는 대표 수도권 공고 하나만 시연하지만, 코드에는 특정 `posting_id`를 하드코딩한 분기가 없습니다 — 목록의 모든 카드가 동일한 로직으로 동작합니다.
+
+### 향후 실제 고용24 연동 (**미구현**)
+
+```text
+고용24 내부 추천 결과
+→ 로그인 사용자의 실제 생활권으로 지역 제한
+→ 공식 jobsCd·empTpCd 기준 후보 조회
+→ 담당업무·기술·진입조건 기반 자동 비교
+→ 복수 지역 후보 제공
+```
+
+현재 실제 데이터에는 공식 `jobsCd`/`empTpCd`가 없고, 담당업무·기술 유사도 계산도 구현되어 있지 않습니다. 이 절은 로드맵이며, 위 "현재 MVP" 절의 결정론적 그룹 매칭을 대체하는 향후 작업입니다.
 
 따라서 현 단계는 "제품 흐름과 안전장치가 동작하는 MVP"이지 "전북 청년 유출 감소 효과가 입증된 서비스"가 아닙니다. 실제 데이터 작업 순서는 `DATA_HANDOFF.md`에 있습니다.

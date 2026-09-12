@@ -38,15 +38,20 @@ interface InlineJeonbukAgentPanelProps {
 }
 
 /**
- * Per-card inline expansion: "전북 일자리 비교 에이전트" -- matches the
- * given capital-area posting against the server's home-region dataset via
- * the real curated pairs (never a client-chosen region), lets the user
- * pick up to three important conditions, compares both postings across six
- * evidence-grounded axes, surfaces the highest-priority unresolved
- * information first, generates real questions to ask the company, and
- * offers an optional finance comparison. Never shown as a separate tool;
- * always anchored to the specific posting card it was opened from. Never
- * computes or shows a combined score or a winner anywhere in this file.
+ * Per-card inline expansion: "전북 일자리 비교 에이전트" -- looks up up to
+ * three home-region comparison candidates for the given capital-area
+ * posting (server-enforced home region; never a client-chosen one), lets
+ * the user pick exactly one of them, then lets the user pick up to three
+ * important conditions, compares both postings across six evidence-grounded
+ * axes, surfaces the highest-priority unresolved information first,
+ * generates real questions to ask the company, and offers an optional
+ * finance comparison. The three candidates are a deterministic display
+ * order (pre-linked pair first, then same-group postings in collection
+ * order), never a similarity ranking, and only the user's selected
+ * candidate is ever sent for analysis -- the other candidates are never
+ * analyzed in the background. Never shown as a separate tool; always
+ * anchored to the specific posting card it was opened from. Never computes
+ * or shows a combined score or a winner anywhere in this file.
  */
 export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: InlineJeonbukAgentPanelProps) {
   const [expanded, setExpanded] = useState(false)
@@ -152,9 +157,11 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
         <div className="mt-3 space-y-4 rounded-card border border-ink-border bg-white p-4">
           <ServiceStepIndicator currentStep={bothSucceeded || financeOpen ? 4 : 3} />
           <div>
-            <p className="font-semibold text-ink-900">내 지역 비교 에이전트가 찾은 {homeRegionLabel} 일자리</p>
+            <p className="font-semibold text-ink-900">동일 직종·고용형태의 {homeRegionLabel} 비교 공고</p>
             <p className="mt-0.5 text-xs text-ink-400">
-              직무와 고용조건을 기준으로 비교했습니다. 확인되지 않은 정보는 추정하지 않습니다.
+              수집 시 동일하게 정규화한 모집직종과 고용형태의 {homeRegionLabel} 공고를 최대 3건 표시합니다. 표시
+              순서는 유사도 순위가 아니며, 가장 적합하거나 유일한 지역 대안이라는 의미는 아닙니다. 확인되지 않은
+              정보는 추정하지 않습니다.
             </p>
           </div>
 
@@ -166,7 +173,8 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
           )}
           {matchState.status === 'empty' && (
             <p className="rounded-card bg-surface-muted p-3 text-sm text-ink-700">
-              현재 검증된 {homeRegionLabel} 비교 후보가 없습니다.
+              현재 표시할 수 있는 {homeRegionLabel} 비교 후보가 없습니다. (동일하게 정규화한 모집직종·고용형태의
+              공고가 현재 배치에 없습니다)
             </p>
           )}
           {matchState.status === 'error' && (

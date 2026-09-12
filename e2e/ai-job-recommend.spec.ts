@@ -46,4 +46,60 @@ test.describe('AI추천(일자리) 목록 화면 (전북 일자리 비교 에이
     await expect(page).toHaveURL(/\/$/)
     await expect(page.getByRole('heading', { name: /나만의 고용서비스/ })).toBeVisible()
   })
+
+  test('전북 비교 후보는 최대 3건이며 유사도 순위가 아니라는 안내가 표시된다', async ({ page }) => {
+    await page.goto('/ai-job-recommend')
+    const cards = page.locator('li:has-text("수도권 공고")')
+    await expect(cards.first()).toBeVisible({ timeout: 10000 })
+    const firstCard = cards.first()
+
+    await firstCard.getByRole('button', { name: /내 지역 유사 일자리 보기/ }).click()
+    const candidateItems = firstCard.locator('ul > li')
+    await expect(candidateItems.first()).toBeVisible({ timeout: 10000 })
+
+    const count = await candidateItems.count()
+    expect(count).toBeGreaterThan(0)
+    expect(count).toBeLessThanOrEqual(3)
+
+    // 유사도 순위가 아니라는 안내 문구 (TASK "수도권 대표 공고 1건 -> 전북
+    // 비교 공고 최대 3건" section 5).
+    await expect(firstCard.getByText('최대 3건 표시합니다')).toBeVisible()
+    await expect(firstCard.getByText('유사도 순위가 아니며')).toBeVisible()
+
+    // 금지 표현: 유사도 점수, 최적, 적합도, 검증된 매칭 등은 어디에도 없어야 함.
+    const cardText = await firstCard.innerText()
+    expect(cardText).not.toMatch(/유사도 상위|가장 유사한|최적의 전북|적합도 \d|추천 점수|검증된 매칭/)
+  })
+
+  test('두 번째 후보를 선택하면 선택 상태와 분석 대상이 갱신된다', async ({ page }) => {
+    await page.goto('/ai-job-recommend')
+    const cards = page.locator('li:has-text("수도권 공고")')
+    await expect(cards.first()).toBeVisible({ timeout: 10000 })
+    const firstCard = cards.first()
+
+    await firstCard.getByRole('button', { name: /내 지역 유사 일자리 보기/ }).click()
+    const candidateButtons = firstCard.locator('ul > li button')
+    await expect(candidateButtons.first()).toBeVisible({ timeout: 10000 })
+    const candidateCount = await candidateButtons.count()
+    test.skip(candidateCount < 2, '이 수도권 공고에는 비교 후보가 2건 미만이라 후보 전환을 검증할 수 없음')
+
+    const first = candidateButtons.nth(0)
+    const second = candidateButtons.nth(1)
+
+    await first.click()
+    await expect(first).toHaveAttribute('aria-pressed', 'true')
+    await expect(second).toHaveAttribute('aria-pressed', 'false')
+
+    await second.click()
+    await expect(second).toHaveAttribute('aria-pressed', 'true')
+    await expect(first).toHaveAttribute('aria-pressed', 'false')
+
+    // private 원문이 이 환경에 없더라도(정상적인 fail-closed 상태), 분석
+    // 대상이 갱신됐다는 것 자체는 오류 메시지에 선택한 후보 라벨이 반영되는
+    // 것으로 확인할 수 있다 -- 후보 3건을 동시에 분석하지 않는다는 것도
+    // 함께 확인된다 (선택 전에는 분석 요청이 전혀 나가지 않음).
+    await expect(firstCard.getByText('공고를 분석하고 있어요...').or(firstCard.getByText(/후보:/))).toBeVisible({
+      timeout: 15000,
+    })
+  })
 })
