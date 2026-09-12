@@ -9,8 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .api.v1.router import api_router
+from .config import load_env_file
 from .errors import AppError
 from .models.common import APIError
+
+# Explicit rather than relying on the api_router import chain to reach
+# app.config first: CORS_ORIGINS below must see a local .env's value
+# regardless of import order elsewhere. Safe to call more than once.
+load_env_file()
 
 app = FastAPI(
     title="Jeonbuk Career Due-Diligence Backend",

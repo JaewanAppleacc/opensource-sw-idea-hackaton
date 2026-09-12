@@ -9,8 +9,32 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
+from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import BaseModel
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_env_file() -> None:
+    """Loads a real, untracked `.env` at the repo root if one exists.
+
+    Never overrides an already-set OS environment variable (override=False,
+    so an explicit `export FOO=bar` before starting the process still wins)
+    and is a silent no-op when no `.env` exists (the default for a fresh
+    clone -- nothing about this changes behavior without a local `.env`
+    file). Never logs or prints the values it loads; python-dotenv's
+    default verbose=False is left as-is.
+    """
+    load_dotenv(_REPO_ROOT / ".env", override=False)
+
+
+# Runs at import time so every entry point (uvicorn, pytest, scripts) that
+# eventually imports this module picks up a local .env the same way,
+# instead of each one accidentally depending on whatever the invoking shell
+# happened to have exported.
+load_env_file()
 
 
 class Settings(BaseModel):

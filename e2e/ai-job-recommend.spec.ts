@@ -85,6 +85,7 @@ test.describe('AI추천(일자리) 목록 화면 (전북 일자리 비교 에이
 
     const first = candidateButtons.nth(0)
     const second = candidateButtons.nth(1)
+    const secondCandidateLabel = (await second.locator('p').first().innerText()).trim()
 
     await first.click()
     await expect(first).toHaveAttribute('aria-pressed', 'true')
@@ -94,12 +95,23 @@ test.describe('AI추천(일자리) 목록 화면 (전북 일자리 비교 에이
     await expect(second).toHaveAttribute('aria-pressed', 'true')
     await expect(first).toHaveAttribute('aria-pressed', 'false')
 
-    // private 원문이 이 환경에 없더라도(정상적인 fail-closed 상태), 분석
-    // 대상이 갱신됐다는 것 자체는 오류 메시지에 선택한 후보 라벨이 반영되는
-    // 것으로 확인할 수 있다 -- 후보 3건을 동시에 분석하지 않는다는 것도
-    // 함께 확인된다 (선택 전에는 분석 요청이 전혀 나가지 않음).
-    await expect(firstCard.getByText('공고를 분석하고 있어요...').or(firstCard.getByText(/후보:/))).toBeVisible({
-      timeout: 15000,
-    })
+    // Wait for the second candidate's analysis to actually settle (success
+    // or a typed error) rather than only for the transient loading text --
+    // private full text (data/private/intake_raw/**) is only staged
+    // locally on some machines (see README), so this spec must handle
+    // both outcomes without assuming either one.
+    const successHeading = firstCard.getByText('수정된 6개 비교축')
+    const jeonbukErrorAlert = firstCard.getByText(/후보:/)
+    await expect(successHeading.or(jeonbukErrorAlert)).toBeVisible({ timeout: 15000 })
+
+    if (await successHeading.isVisible()) {
+      // Real private text was available for this run: confirm the
+      // comparison actually switched to the SECOND candidate specifically
+      // (not a stale render still describing the first one), and that
+      // candidates are never analyzed in the background before selection
+      // (the first candidate's own comparison label would already have
+      // been visible before this point if it had been).
+      await expect(firstCard.getByText(secondCandidateLabel).first()).toBeVisible()
+    }
   })
 })
