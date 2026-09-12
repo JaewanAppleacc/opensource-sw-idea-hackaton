@@ -64,11 +64,12 @@ test.describe('전체 사용자 시연 흐름 - 직접 비교 경로 (/manual-an
     await expect(page.getByText('1년 가용자금').first()).toBeVisible()
     await expect(page.getByText('3년 가용자금 (가정 기반)').first()).toBeVisible()
     await expect(page.getByText('조건 역전점')).toBeVisible()
-    await expect(page.getByText('주거비 역전점.')).toBeVisible()
+    await expect(page.getByText('월 주거비 차이 역전점.')).toBeVisible()
+    await expect(page.getByText('한 가지 조건만 변경하고 나머지 입력값은 동일하다고 가정한 시나리오입니다.')).toBeVisible()
 
     // 입력값 변경 시 즉시 재계산 (디바운스 후 자동 호출)
     await metroFields.getByLabel('월세 (원/월)').fill('2000000')
-    await expect(page.getByText('임금 차이 역전점.')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('월 실수령액 차이 역전점.')).toBeVisible({ timeout: 10000 })
 
     // No unhandled console errors anywhere in the flow.
     expect(consoleErrors).toEqual([])

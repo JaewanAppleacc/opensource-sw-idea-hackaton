@@ -47,7 +47,7 @@ export function computeAdditionalCrossovers(result: FinancialComparison): Additi
     return [
       {
         id: 'vehicle_cost',
-        title: '차량비 역전점',
+        title: '월 차량비 차이 역전점',
         statement: '현재 입력값 기준으로 두 시나리오의 월 잉여자금이 이미 같습니다.',
       },
     ]
@@ -57,24 +57,28 @@ export function computeAdditionalCrossovers(result: FinancialComparison): Additi
   const lowerLabel = gap > 0 ? jeonbuk.label : metro.label
   const gapAbs = formatKrw(gap)
 
+  // 한 가지 조건만 변경하고 나머지 입력값은 동일하다고 가정한 시나리오다
+  // (TASK section 5.3) -- never framed as an annual-salary ("연봉") gap,
+  // only as a monthly take-home-pay ("월 실수령액") difference, matching
+  // the exact field label the finance form uses.
   const crossovers: AdditionalCrossover[] = [
     {
       id: 'vehicle_cost',
-      title: '차량비 역전점',
-      statement: `현재 입력에서는 ${higherLabel} 근무 시 월 잉여자금이 더 많습니다. 다만 ${higherLabel}의 차량 관련 비용(유지비·주차비 등)이 월 ${gapAbs} 증가하면 두 시나리오의 차이가 사라집니다.`,
+      title: '월 차량비 차이 역전점',
+      statement: `현재 입력에서는 ${higherLabel} 근무 시 월 잉여자금이 더 많습니다. 다만 ${higherLabel}의 차량 관련 비용(유지비·주차비 등)이 월 ${gapAbs} 증가하고 나머지 입력값은 동일하다면 두 시나리오의 차이가 사라집니다.`,
     },
     {
       id: 'metro_housing_support',
-      title: '수도권 주거지원 역전점',
+      title: '월 주거지원 차이 역전점',
       statement:
         higherLabel === metro.label
           ? `${metro.label}이 이미 앞서 있어, 이 시나리오에서는 수도권 주거지원이 필요하지 않습니다.`
-          : `${metro.label}에 월 ${gapAbs}의 주거지원(회사 지원금 등)이 추가된다면 두 시나리오의 차이가 사라집니다.`,
+          : `${metro.label}에 월 ${gapAbs}의 주거지원(회사 지원금 등)이 추가되고 나머지 입력값은 동일하다면 두 시나리오의 차이가 사라집니다.`,
     },
     {
       id: 'wage_gap',
-      title: '임금 차이 역전점',
-      statement: `${lowerLabel}의 세후 월급이 지금보다 월 ${gapAbs} 더 많아지면(또는 ${higherLabel}의 월급이 그만큼 적어지면) 두 시나리오의 월 잉여자금이 같아집니다.`,
+      title: '월 실수령액 차이 역전점',
+      statement: `${lowerLabel}의 월 실수령액이 지금보다 월 ${gapAbs} 더 많아지면(또는 ${higherLabel}의 월 실수령액이 그만큼 적어지면), 나머지 입력값이 동일하다는 가정 하에 두 시나리오의 월 잉여자금이 같아집니다.`,
     },
   ]
   return crossovers

@@ -11,7 +11,11 @@
  *      even if the user didn't tick 임금·보상/고용안정성
  *   4. remaining absent items (unselected axes)
  *   5. remaining vague items (unselected axes)
- * confirmed sub-items never appear here.
+ * confirmed sub-items never appear here. Neither do `not_evaluated`
+ * sub-items (근로시간·교대제·통근, 복지·기숙사·통근지원 -- see
+ * src/lib/comparisonAxes.ts): the guard below only ever matches
+ * `'vague' | 'absent'`, so an MVP scope limitation is never counted as a
+ * posting information gap (TASK section 5.1).
  */
 import type { FieldName } from './apiClient'
 import type { AxisId, AxisResult, AxisSubItemResult } from './comparisonAxes'
@@ -46,7 +50,7 @@ export function buildPriorityUnresolvedList(
     for (const { region, axes } of regions) {
       for (const axis of axes) {
         for (const item of axis.subItems) {
-          const status = item.audited?.status
+          const status = item.displayStatus
           if (status !== 'vague' && status !== 'absent') continue
           const key = dedupeKey(region, item)
           if (seen.has(key)) continue
@@ -71,15 +75,15 @@ export function buildPriorityUnresolvedList(
   const isFinancial = (item: AxisSubItemResult) => item.sourceField !== null && FINANCIALLY_RELEVANT_FIELDS.includes(item.sourceField)
 
   // 1. selected axis, absent
-  collect(0, (_r, axis, item) => isSelected(axis) && item.audited?.status === 'absent')
+  collect(0, (_r, axis, item) => isSelected(axis) && item.displayStatus === 'absent')
   // 2. selected axis, vague
-  collect(1, (_r, axis, item) => isSelected(axis) && item.audited?.status === 'vague')
+  collect(1, (_r, axis, item) => isSelected(axis) && item.displayStatus === 'vague')
   // 3. financially relevant, not already covered
   collect(2, (_r, _axis, item) => isFinancial(item))
   // 4. remaining absent
-  collect(3, (_r, _axis, item) => item.audited?.status === 'absent')
+  collect(3, (_r, _axis, item) => item.displayStatus === 'absent')
   // 5. remaining vague
-  collect(4, (_r, _axis, item) => item.audited?.status === 'vague')
+  collect(4, (_r, _axis, item) => item.displayStatus === 'vague')
 
   return buckets.flat()
 }

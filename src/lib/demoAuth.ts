@@ -17,13 +17,22 @@ export interface DemoProfile {
   displayName: string
   homeRegionLabel: string
   homeRegionCode: string
+  /** 잡케어(JobCare) 연동을 가정한 시연용 관심 정보 (TASK section 3). Real
+   * JobCare API is never called -- these are fixed demo values only, never
+   * a fabricated 취업확률/역량점수/심리검사 result. */
+  interestedOccupation: string
+  interestedEmploymentType: string
 }
 
 export const DEMO_PROFILE: DemoProfile = {
   displayName: '전북 청년 데모 사용자',
   homeRegionLabel: '전북특별자치도',
   homeRegionCode: 'JEONBUK',
+  interestedOccupation: '제조·조립',
+  interestedEmploymentType: '정규직',
 }
+
+export const JOBCARE_DEMO_DISCLAIMER = '해커톤 시연용 사용자 프로필입니다.'
 
 export function isDemoLoggedIn(): boolean {
   try {

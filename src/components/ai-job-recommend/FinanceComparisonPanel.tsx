@@ -160,8 +160,11 @@ function ResultCard({
 
       <div className="rounded-card border border-ink-border bg-white p-4 text-sm text-ink-700">
         <p className="font-semibold text-ink-900">조건 역전점</p>
-        <p className="mt-1">
-          <strong className="text-ink-900">주거비 역전점.</strong> {result.crossover.interpretation}
+        <p className="mt-1 text-xs text-ink-400">
+          한 가지 조건만 변경하고 나머지 입력값은 동일하다고 가정한 시나리오입니다.
+        </p>
+        <p className="mt-2">
+          <strong className="text-ink-900">월 주거비 차이 역전점.</strong> {result.crossover.interpretation}
         </p>
         {additionalCrossovers.map((c) => (
           <p key={c.id} className="mt-2">

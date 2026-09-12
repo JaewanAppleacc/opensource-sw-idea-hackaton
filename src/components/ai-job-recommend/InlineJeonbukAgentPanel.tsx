@@ -18,6 +18,7 @@ import { PriorityUnresolvedPanel } from './PriorityUnresolvedPanel'
 import { CompanyQuestionsPanel } from './CompanyQuestionsPanel'
 import { FinanceComparisonPanel } from './FinanceComparisonPanel'
 import { GapStatsNotice } from './GapStatsNotice'
+import { ServiceStepIndicator } from './ServiceStepIndicator'
 
 type MatchState =
   | { status: 'idle' }
@@ -149,6 +150,7 @@ export function InlineJeonbukAgentPanel({ metroPosting, homeRegionLabel }: Inlin
 
       {expanded && (
         <div className="mt-3 space-y-4 rounded-card border border-ink-border bg-white p-4">
+          <ServiceStepIndicator currentStep={bothSucceeded || financeOpen ? 4 : 3} />
           <div>
             <p className="font-semibold text-ink-900">내 지역 비교 에이전트가 찾은 {homeRegionLabel} 일자리</p>
             <p className="mt-0.5 text-xs text-ink-400">

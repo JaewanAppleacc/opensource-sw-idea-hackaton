@@ -1,30 +1,41 @@
 import { HelpCircle, Quote, Star } from 'lucide-react'
 import type { AxisId, AxisResult, AxisSubItemResult } from '../../lib/comparisonAxes'
-import { WORK_CONDITIONS_UNSUPPORTED_MESSAGE } from '../../lib/comparisonAxes'
+import { NOT_EVALUATED_LABEL } from '../../lib/comparisonAxes'
 import { CHANNEL_LABELS, STATUS_LABELS } from '../../lib/displayLabels'
+import type { FieldStatus } from '../../lib/apiClient'
 
-const STATUS_STYLES: Record<string, string> = {
+const STATUS_STYLES: Record<FieldStatus, string> = {
   confirmed: 'bg-tint-mint/60 text-brand-green',
   vague: 'bg-amber-100 text-amber-700',
   absent: 'bg-surface-muted text-ink-500',
 }
 
+const NOT_EVALUATED_STYLE = 'border border-dashed border-ink-border bg-white text-ink-400'
+
 function SubItemRow({ item }: { item: AxisSubItemResult }) {
-  const status = item.audited?.status
-  const isWorkConditionsPlaceholder = item.sourceField === null
+  const isNotEvaluated = item.displayStatus === 'not_evaluated'
   return (
     <div className="border-t border-ink-border pt-2 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-xs font-semibold text-ink-700">{item.subLabel}</span>
-        {status && (
-          <span className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLES[status]}`}>
-            {STATUS_LABELS[status]}
+        {isNotEvaluated ? (
+          <span className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium ${NOT_EVALUATED_STYLE}`}>
+            {NOT_EVALUATED_LABEL}
           </span>
+        ) : (
+          item.displayStatus &&
+          item.displayStatus !== 'not_evaluated' && (
+            <span
+              className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLES[item.displayStatus]}`}
+            >
+              {STATUS_LABELS[item.displayStatus]}
+            </span>
+          )
         )}
       </div>
       <p className="mt-1 text-xs text-ink-700">
-        {isWorkConditionsPlaceholder ? (
-          <span className="text-ink-400">{WORK_CONDITIONS_UNSUPPORTED_MESSAGE}</span>
+        {isNotEvaluated ? (
+          <span className="text-ink-400">{item.notEvaluatedMessage}</span>
         ) : item.audited?.evidence ? (
           <span className="flex items-start gap-1 text-ink-700">
             <Quote size={11} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-400" />

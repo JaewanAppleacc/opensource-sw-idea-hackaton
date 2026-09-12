@@ -5,6 +5,9 @@ import { Container } from '../components/ui/Container'
 import { DemoModeNotice } from '../components/ai-job-recommend/DemoModeNotice'
 import { LoginStatusBar } from '../components/ai-job-recommend/LoginStatusBar'
 import { CapitalPostingCard } from '../components/ai-job-recommend/CapitalPostingCard'
+import { JobCareProfilePanel } from '../components/ai-job-recommend/JobCareProfilePanel'
+import { ServiceStepIndicator } from '../components/ai-job-recommend/ServiceStepIndicator'
+import { ServiceDifferentiationNotice } from '../components/ai-job-recommend/ServiceDifferentiationNotice'
 import { ApiClientError, getHomeRegionListing, type PostingListItem } from '../lib/apiClient'
 import { errorCodeToMessage } from '../lib/displayLabels'
 import { DEMO_PROFILE, isDemoLoggedIn, setDemoLoggedIn } from '../lib/demoAuth'
@@ -81,9 +84,26 @@ export function AiJobRecommendPage() {
           </div>
         </div>
 
+        <ServiceStepIndicator currentStep={loggedIn ? 2 : 1} className="mt-4" />
+
         <div className="mt-4 space-y-3">
           <DemoModeNotice />
           <LoginStatusBar loggedIn={loggedIn} onLogin={handleLogin} onLogout={handleLogout} />
+          {loggedIn && <JobCareProfilePanel />}
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="rounded-card border border-ink-border bg-surface-muted p-3 text-xs">
+            <p className="font-semibold text-ink-900">고용24 AI추천</p>
+            <p className="mt-0.5 text-ink-500">사람과 일자리의 적합성을 분석</p>
+          </div>
+          <div className="rounded-card border border-brand-blue/30 bg-tint-sky/20 p-3 text-xs">
+            <p className="font-semibold text-ink-900">지역 선택 보정 에이전트</p>
+            <p className="mt-0.5 text-ink-500">수도권과 자기 지역 일자리의 비교 가능성을 분석</p>
+          </div>
+        </div>
+        <div className="mt-2">
+          <ServiceDifferentiationNotice />
         </div>
 
         <p className="mt-4 text-sm leading-relaxed text-ink-500">

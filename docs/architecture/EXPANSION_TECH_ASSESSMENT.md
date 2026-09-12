@@ -6,9 +6,17 @@ MVP, no product-level multi-agent system) and `docs/data/AI_CONSENSUS_REVIEW.md`
 (the "Harness" evidence below overlaps with what that document reports).
 
 **This document evaluates; it does not implement.** No new dependency was
-added to `package.json` or `requirements.txt` as a result of writing this.
-Judgments use exactly three values: `IMPLEMENT_NOW`, `NEXT_STAGE`,
-`NOT_JUSTIFIED`. Using a framework is never treated as evidence for itself.
+added to `package.json` or `requirements.txt` as a result of writing this
+(including on `feature/work24-ai-extension-layer`, which only added
+frontend presentation components -- see `docs/architecture/CURRENT_SYSTEM_FLOW.md`).
+Judgments use exactly three values per-item (`IMPLEMENT_NOW`, `NEXT_STAGE`,
+`NOT_JUSTIFIED`), plus one distinction used only in the summary table below:
+`NOT_JUSTIFIED_NOW` marks a technology that could become justified once a
+concrete, named trigger occurs (see each section's "Adoption condition"),
+while bare `NOT_JUSTIFIED` (multi-agent, section 7) means "prohibited by
+this product's own architecture constraints regardless of scale" --
+`CLAUDE.md` rules out a product-level multi-agent system outright, not
+conditionally. Using a framework is never treated as evidence for itself.
 
 ---
 
@@ -393,13 +401,24 @@ Comparison
 
 | Technology | Verdict | One-line reason |
 |---|---|---|
-| LangGraph | `NOT_JUSTIFIED` (→ `NEXT_STAGE` if the follow-up-question loop is built) | No multi-turn state exists yet in this branch |
-| LangChain | `NOT_JUSTIFIED` | Existing 20-line provider abstraction has more precise control |
-| RAG | `NOT_JUSTIFIED` now / `NEXT_STAGE` at scale | 20 real postings with an exact pre-computed pairing; no ranking problem to solve |
-| MCP | `NOT_JUSTIFIED` now / `NEXT_STAGE` per external integration | No external API calls exist to standardize yet |
-| Harness | `IMPLEMENT_NOW` (already built; formalize only) | Schema/evidence/rule/fail-closed/secret-scrub/test discipline already in code |
-| Ontology | `IMPLEMENT_NOW` (docs only, no graph DB) | Rubric YAML + Pydantic models already express it |
-| Multi-agent | `NOT_JUSTIFIED` | Every current task is deterministic; `CLAUDE.md` prohibits this outright |
+| LangGraph | `NOT_JUSTIFIED_NOW` | No multi-turn state exists yet in this branch |
+| LangChain | `NOT_JUSTIFIED_NOW` | Existing 20-line provider abstraction has more precise control |
+| RAG | `NOT_JUSTIFIED_NOW` | 20 real postings with an exact pre-computed pairing; no ranking problem to solve |
+| MCP | `NOT_JUSTIFIED_NOW` | No external API calls exist to standardize yet |
+| Harness | `IMPLEMENT_NOW` (이미 구현) | Schema/evidence/rule/fail-closed/secret-scrub/test discipline already in code |
+| Ontology | `IMPLEMENT_NOW` (경량 구조, docs only, no graph DB) | Rubric YAML + Pydantic models already express it |
+| Multi-agent | `NOT_JUSTIFIED` | Every current task is deterministic; `CLAUDE.md` prohibits this outright, not just "not yet justified" |
+
+### 향후 도입 조건 (한 줄 요약)
+
+- **LangGraph** — 기업 답변·추가자료 입력 후 이전 상태를 유지하며 재분석할 때
+  (실제 확인 질문 → 응답 입력 → 해당 항목만 재검증 → 비교 갱신 루프가 생길 때).
+- **LangChain** — 다수 문서 로더와 provider chain을 표준화할 실질적 필요가
+  생길 때 (지금은 provider당 20줄 미만의 직접 구현이 더 정밀함).
+- **RAG** — 지역 공고가 수천 건으로 늘고, 의미 검색 성능을 gold 데이터로
+  평가할 필요가 생길 때 (지금은 20건 전수 매칭이 오히려 더 정확함).
+- **MCP** — 고용24 채용정보·지역정책·주거비 기준선을 내부 도구로 연결할 때
+  (지금은 외부 API 호출이 하나도 없어 표준화할 대상이 없음).
 
 ---
 
@@ -470,3 +489,48 @@ posting influence which results even get ranked:
 At the current 20-posting, single-region-pack scale, none of this is
 implemented or needed — the exact-match pairing already in
 `data/intake/real_matched_pairs.jsonl` is both simpler and more precise.
+
+---
+
+## 10. Public-sector LLM infrastructure expansion (work24-ai-extension-layer addendum)
+
+This section addresses a specific over-claim risk in judge Q&A: "고용24가
+이미 챗봇/AI추천을 운영하니 이 프로젝트도 같은 LLM 성능을 쓸 수 있다"는
+문장은 **성능을 증명하지 않는다** — 운영 사실과 구조화 정확도는 별개다.
+
+**Accurate framing:**
+
+고용24는 이미 AI추천·잡케어·챗봇 등 디지털 고용서비스 기반을 운영하고
+있다. 실제 적용 시에는 고용24가 승인한 AI 인프라에서 채용공고 구조화
+성능을 별도로 검증한다.
+
+**Data flow if this MVP were adopted inside that infrastructure** (documentation
+only — nothing below is implemented or connected in this branch; this repo
+still only calls `mock`/`anthropic`/`nvidia` providers configured via
+`LLM_PROVIDER`, per `backend/app/providers/factory.py`):
+
+```text
+고용24 내부 데이터
+  → 개인정보 제거·데이터 최소화        (posting text only; no resume/PII, per CLAUDE.md)
+  → 승인된 정부 AI 또는 범정부 AI 공통기반   (this MVP's mock/Anthropic/NVIDIA providers are
+                                          stand-ins for whatever infra 고용24 actually approves)
+  → 구조화 결과                         (RawExtraction: six fields, confirmed/vague/absent)
+  → Evidence-Grounded Harness           (section 5 above -- unchanged regardless of provider)
+  → 사용자 화면                         (six-axis comparison, never a raw LLM answer)
+```
+
+**Why the harness step doesn't change with the provider.** The harness
+(schema validation, exact evidence-offset verification, deterministic
+downgrade-only rules, fail-closed behavior) sits entirely on this
+codebase's side of the provider boundary (`backend/app/providers/base.py`'s
+`ExtractionProvider` protocol). Swapping in a 범정부 AI 공통기반 endpoint
+would mean writing one more `ExtractionProvider` implementation next to
+`mock_provider.py`/`anthropic_provider.py`/`nvidia_provider.py` — every
+downstream check stays exactly as strict as it is today, because none of
+those checks trust the provider's raw output in the first place.
+
+**LangChain reminder.** As stated in section 2 above: do not write or say
+that LangChain (or any orchestration framework) prevents hallucination.
+The one thing preventing an ungrounded answer from reaching a user in this
+product is the Evidence-Grounded Harness (section 5), independent of which
+provider or framework sits behind it.
