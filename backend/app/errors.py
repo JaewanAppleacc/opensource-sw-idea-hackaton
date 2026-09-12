@@ -45,3 +45,15 @@ class NoMatchFoundError(AppError):
 class DataNotReadyError(AppError):
     code: ErrorCode = "data_not_ready"
     status_code = 200
+
+
+class PrivateDataUnavailableError(AppError):
+    """The requested posting_id has no private full text resolvable on this
+    machine right now (data/private/intake_raw/<id>.json missing) -- e.g. a
+    fresh clone with no private data staged. Never invented, never
+    downgraded into a fake analysis; the caller must show its own
+    fail-closed UI state.
+    """
+
+    code: ErrorCode = "private_data_unavailable"
+    status_code = 503

@@ -39,6 +39,12 @@ ErrorCode = Literal[
     "provider_unavailable",
     "no_match_found",
     "data_not_ready",
+    # Additive (inline-jeonbuk-agent): the analyze-by-id path resolves a
+    # posting's real text from private, rights-gated local storage
+    # (data/private/intake_raw/**) at request time -- this is distinct from
+    # "data_not_ready" (which means "no adjudicated human gold yet") and
+    # from "no_match_found" (which is about Jeonbuk candidate matching).
+    "private_data_unavailable",
 ]
 
 

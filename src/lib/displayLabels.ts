@@ -29,6 +29,20 @@ export const STATUS_LABELS: Record<FieldStatus, string> = {
   absent: '공고에서 확인되지 않음',
 }
 
+/** Fact-based matching-reason phrases for MatchCandidate.matching_fields /
+ * mismatch_fields (see backend/app/services/real_postings.py -- these are
+ * the only two fields that service currently compares; no career/education
+ * similarity is computed since the real data has no structured field for
+ * either, so none is claimed here). */
+export const MATCH_REASON_LABELS: Record<string, string> = {
+  occupation: '동일한 직무',
+  employment_type: '동일한 고용형태',
+}
+
+export function matchReasonLabel(field: string): string {
+  return MATCH_REASON_LABELS[field] ?? field
+}
+
 export const CHANNEL_LABELS: Record<VerificationChannel, string> = {
   email: '이메일로 문의',
   phone: '전화로 문의',
@@ -51,6 +65,8 @@ export function errorCodeToMessage(code: ApiErrorCode, fallback?: string): strin
       return '현재 검증된 전북 비교 후보가 없습니다.'
     case 'data_not_ready':
       return '아직 준비되지 않은 데이터입니다.'
+    case 'private_data_unavailable':
+      return '실제 원문 데이터가 연결되지 않은 데모 환경입니다.'
     case 'network_error':
       return '백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해 주세요.'
     case 'timeout':

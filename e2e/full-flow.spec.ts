@@ -12,14 +12,14 @@ import { expect, test } from '@playwright/test'
  * clean automated scenario) or provider_unavailable/analysis_failed (the
  * mock provider cannot produce these).
  */
-test.describe('전체 사용자 시연 흐름 (실제 백엔드 연동)', () => {
+test.describe('전체 사용자 시연 흐름 - 직접 비교 경로 (/manual-analysis, 실제 백엔드 연동)', () => {
   test('수도권 선택 -> 전북 후보 -> 6필드 분석 -> 근거/질문 -> 자금 비교', async ({ page }) => {
     const consoleErrors: string[] = []
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text())
     })
 
-    await page.goto('/ai-job-recommend')
+    await page.goto('/manual-analysis')
 
     // demo/mock badge and prototype disclaimer are visible immediately.
     await expect(page.getByText('데모 모드 · 사전 검증된 분석 결과')).toBeVisible()
@@ -77,7 +77,7 @@ test.describe('전체 사용자 시연 흐름 (실제 백엔드 연동)', () => 
   })
 
   test('음수/누락 재정 입력은 오류로 표시된다', async ({ page }) => {
-    await page.goto('/ai-job-recommend')
+    await page.goto('/manual-analysis')
     await page.getByRole('button', { name: '데모 공고 불러오기' }).click()
     await page.getByRole('button', { name: '공고 분석하기' }).click()
 
@@ -92,7 +92,7 @@ test.describe('전체 사용자 시연 흐름 (실제 백엔드 연동)', () => 
   })
 
   test('지역 결손 통계는 준비되지 않음 상태를 정직하게 표시한다', async ({ page }) => {
-    await page.goto('/ai-job-recommend')
+    await page.goto('/manual-analysis')
     await page.getByRole('button', { name: '데모 공고 불러오기' }).click()
     await page.getByRole('button', { name: '공고 분석하기' }).click()
     const candidateButtons = page.locator('section:has(#candidates-heading) ul > li button')

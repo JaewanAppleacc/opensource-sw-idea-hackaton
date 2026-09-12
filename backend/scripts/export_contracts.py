@@ -21,6 +21,7 @@ from app.models.finance import (
     FinancialOption,
     FinancialOptionResult,
 )
+from app.models.listing import AnalyzeByIdRequest, HomeRegionMatchRequest, PostingListItem, PostingListResponse
 from app.models.match import MatchCandidate, MatchRequest, MatchResponse
 from app.models.posting import AuditedField, PostingAnalysis, PostingInput, ValidationWarning, VerificationAction
 from app.models.stats import GapStats, GapStatsFilters, GapStatsResponse
@@ -48,6 +49,10 @@ MODELS = [
     GapStatsFilters,
     GapStatsResponse,
     APIError,
+    PostingListItem,
+    PostingListResponse,
+    HomeRegionMatchRequest,
+    AnalyzeByIdRequest,
 ]
 
 

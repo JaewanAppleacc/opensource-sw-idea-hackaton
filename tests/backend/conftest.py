@@ -14,6 +14,7 @@ from app.config import clear_settings_cache  # noqa: E402
 from app.datasets.loader import clear_dataset_cache  # noqa: E402
 from app.main import app as fastapi_app  # noqa: E402
 from app.rules.field_rules import clear_rules_cache  # noqa: E402
+from app.services.real_postings import clear_real_postings_cache  # noqa: E402
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 BACKEND_DATASET_FIXTURE = BACKEND_ROOT / "app" / "datasets" / "jeonbuk_fixture.jsonl"
@@ -23,6 +24,7 @@ def _clear_all_caches() -> None:
     clear_settings_cache()
     clear_dataset_cache()
     clear_rules_cache()
+    clear_real_postings_cache()
 
 
 @pytest.fixture(autouse=True)

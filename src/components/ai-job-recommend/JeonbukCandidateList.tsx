@@ -1,5 +1,6 @@
 import { CheckCircle2, MapPin, Link2 } from 'lucide-react'
 import type { MatchCandidate } from '../../lib/apiClient'
+import { matchReasonLabel } from '../../lib/displayLabels'
 
 interface JeonbukCandidateListProps {
   candidates: MatchCandidate[]
@@ -49,7 +50,7 @@ export function JeonbukCandidateList({
                       key={field}
                       className="rounded-pill bg-tint-mint/60 px-2 py-0.5 text-[11px] font-medium text-brand-green"
                     >
-                      {field} 일치
+                      {matchReasonLabel(field)}
                     </span>
                   ))}
                   {candidate.mismatch_fields.map((field) => (
@@ -57,7 +58,7 @@ export function JeonbukCandidateList({
                       key={field}
                       className="rounded-pill bg-surface-muted px-2 py-0.5 text-[11px] font-medium text-ink-500"
                     >
-                      {field} 불일치
+                      {matchReasonLabel(field)} 다름
                     </span>
                   ))}
                   {candidate.is_synthetic && (

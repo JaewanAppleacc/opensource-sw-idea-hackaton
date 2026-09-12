@@ -1,160 +1,64 @@
-import { AlertTriangle, ArrowLeft, CheckCircle2, Info, Link2, Loader2, RotateCcw, Sparkles } from 'lucide-react'
-import { useId, useState } from 'react'
+import { AlertTriangle, ArrowLeft, ListChecks, Loader2, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Container } from '../components/ui/Container'
-import { useToast } from '../components/ui/ToastProvider'
-import { demoJobPosting, jobCategoryOptions } from '../data/aiJobRecommend'
 import { DemoModeNotice } from '../components/ai-job-recommend/DemoModeNotice'
-import { JeonbukCandidateList } from '../components/ai-job-recommend/JeonbukCandidateList'
-import { PostingAnalysisPanel, type AnalysisState } from '../components/ai-job-recommend/PostingAnalysisPanel'
-import { FinanceComparisonPanel } from '../components/ai-job-recommend/FinanceComparisonPanel'
-import { GapStatsNotice } from '../components/ai-job-recommend/GapStatsNotice'
-import { ApiClientError, analyzePosting, matchPostings, type MatchCandidate } from '../lib/apiClient'
+import { LoginStatusBar } from '../components/ai-job-recommend/LoginStatusBar'
+import { CapitalPostingCard } from '../components/ai-job-recommend/CapitalPostingCard'
+import { ApiClientError, getHomeRegionListing, type PostingListItem } from '../lib/apiClient'
 import { errorCodeToMessage } from '../lib/displayLabels'
+import { DEMO_PROFILE, isDemoLoggedIn, setDemoLoggedIn } from '../lib/demoAuth'
 
-interface FormState {
-  category: string
-  body: string
-  sourceUrl: string
-}
-
-interface FormErrors {
-  category?: string
-  body?: string
-}
-
-type CandidatesState =
-  | { status: 'idle' }
+type ListingState =
   | { status: 'loading' }
-  | { status: 'success'; candidates: MatchCandidate[]; datasetDescription: string }
-  | { status: 'empty' }
+  | { status: 'success'; postings: PostingListItem[]; homeRegion: string; datasetDescription: string }
   | { status: 'error'; error: ApiClientError }
 
-const initialState: FormState = { category: '', body: '', sourceUrl: '' }
+function toApiClientError(reason: unknown): ApiClientError {
+  if (reason instanceof ApiClientError) return reason
+  return new ApiClientError({ code: 'unexpected_response', message: '알 수 없는 오류가 발생했습니다.' })
+}
 
+/**
+ * Default AI추천(일자리) landing experience (see TASK "고용24 AI추천 목록 내
+ * 전북 일자리 비교 에이전트 통합"): a recommended-postings list using real
+ * capital-area posting metadata, each with an inline "내 지역 유사 일자리
+ * 보기" agent -- never a separate paste-and-analyze tool. The original
+ * manual-paste flow still exists, unchanged, at /manual-analysis.
+ */
 export function AiJobRecommendPage() {
-  const { announce } = useToast()
-  const [form, setForm] = useState<FormState>(initialState)
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [submitted, setSubmitted] = useState<FormState | null>(null)
+  const [loggedIn, setLoggedIn] = useState(() => isDemoLoggedIn())
+  const [listingState, setListingState] = useState<ListingState>({ status: 'loading' })
 
-  const [candidatesState, setCandidatesState] = useState<CandidatesState>({ status: 'idle' })
-  const [selectedCandidate, setSelectedCandidate] = useState<MatchCandidate | null>(null)
-  const [metroAnalysis, setMetroAnalysis] = useState<AnalysisState>({ status: 'idle' })
-  const [jeonbukAnalysis, setJeonbukAnalysis] = useState<AnalysisState>({ status: 'idle' })
-
-  const categoryId = useId()
-  const categoryListId = useId()
-  const bodyId = useId()
-  const urlId = useId()
-
-  function resetFlow() {
-    setSubmitted(null)
-    setCandidatesState({ status: 'idle' })
-    setSelectedCandidate(null)
-    setMetroAnalysis({ status: 'idle' })
-    setJeonbukAnalysis({ status: 'idle' })
-  }
-
-  function handleLoadDemo() {
-    setForm({ category: demoJobPosting.category, body: demoJobPosting.body, sourceUrl: demoJobPosting.sourceUrl })
-    setErrors({})
-    resetFlow()
-    announce('데모 채용공고를 불러왔어요. 내용을 확인한 뒤 분석하기를 눌러보세요.')
-  }
-
-  async function fetchCandidates(occupation: string) {
-    setCandidatesState({ status: 'loading' })
-    try {
-      const response = await matchPostings({ occupation })
-      if (response.candidates.length === 0) {
-        setCandidatesState({ status: 'empty' })
-      } else {
-        setCandidatesState({
+  useEffect(() => {
+    let cancelled = false
+    getHomeRegionListing()
+      .then((response) => {
+        if (cancelled) return
+        setListingState({
           status: 'success',
-          candidates: response.candidates,
+          postings: response.postings,
+          homeRegion: response.home_region,
           datasetDescription: response.dataset_description,
         })
-      }
-    } catch (err) {
-      if (err instanceof ApiClientError && err.code === 'no_match_found') {
-        setCandidatesState({ status: 'empty' })
-      } else {
-        setCandidatesState({
-          status: 'error',
-          error: err instanceof ApiClientError ? err : new ApiClientError({ code: 'unexpected_response', message: '알 수 없는 오류가 발생했습니다.' }),
-        })
-      }
+      })
+      .catch((err) => {
+        if (!cancelled) setListingState({ status: 'error', error: toApiClientError(err) })
+      })
+    return () => {
+      cancelled = true
     }
+  }, [])
+
+  function handleLogin() {
+    setDemoLoggedIn(true)
+    setLoggedIn(true)
   }
 
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault()
-
-    const nextErrors: FormErrors = {}
-    if (!form.category.trim()) nextErrors.category = '관심 직종을 입력하거나 목록에서 선택해 주세요.'
-    if (!form.body.trim()) nextErrors.body = '채용공고 본문을 입력해 주세요.'
-    else if (form.body.trim().length < 20) nextErrors.body = '본문이 너무 짧아요. 채용공고 내용을 조금 더 붙여넣어 주세요.'
-
-    setErrors(nextErrors)
-
-    if (Object.keys(nextErrors).length > 0) {
-      announce('입력값을 확인해 주세요.')
-      return
-    }
-
-    setSubmitted(form)
-    setSelectedCandidate(null)
-    setMetroAnalysis({ status: 'idle' })
-    setJeonbukAnalysis({ status: 'idle' })
-    announce('입력하신 공고를 확인했어요. 전북 비교 후보를 찾고 있어요.')
-    void fetchCandidates(form.category.trim())
+  function handleLogout() {
+    setDemoLoggedIn(false)
+    setLoggedIn(false)
   }
-
-  async function handleSelectCandidate(candidate: MatchCandidate) {
-    if (!submitted) return
-    setSelectedCandidate(candidate)
-    setMetroAnalysis({ status: 'loading' })
-    setJeonbukAnalysis({ status: 'loading' })
-
-    // Two independent requests, run in parallel. Neither result is hidden
-    // because the other failed -- each panel renders its own settled state.
-    const [metroResult, jeonbukResult] = await Promise.allSettled([
-      analyzePosting({
-        source_text: submitted.body,
-        source_url: submitted.sourceUrl || null,
-        expected_occupation: submitted.category,
-      }),
-      candidate.source_text
-        ? analyzePosting({
-            posting_id: candidate.posting_id,
-            source_text: candidate.source_text,
-            source_url: candidate.source_url,
-            expected_occupation: candidate.occupation,
-          })
-        : Promise.reject(
-            new ApiClientError({
-              code: 'invalid_input',
-              message: '이 후보는 원문을 표시할 수 없어 분석할 수 없습니다 (재배포 권한 미확인).',
-            }),
-          ),
-    ])
-
-    setMetroAnalysis(
-      metroResult.status === 'fulfilled'
-        ? { status: 'success', analysis: metroResult.value }
-        : { status: 'error', error: toApiClientError(metroResult.reason) },
-    )
-    setJeonbukAnalysis(
-      jeonbukResult.status === 'fulfilled'
-        ? { status: 'success', analysis: jeonbukResult.value }
-        : { status: 'error', error: toApiClientError(jeonbukResult.reason) },
-    )
-  }
-
-  const analysisSettled =
-    (metroAnalysis.status === 'success' || metroAnalysis.status === 'error') &&
-    (jeonbukAnalysis.status === 'success' || jeonbukAnalysis.status === 'error')
 
   return (
     <div className="py-10 sm:py-14">
@@ -173,214 +77,67 @@ export function AiJobRecommendPage() {
           </span>
           <div>
             <p className="text-sm font-bold text-brand-blue">AI추천(일자리)</p>
-            <h1 className="text-xl font-bold text-ink-900 sm:text-2xl">채용공고 AI 분석 (데모)</h1>
+            <h1 className="text-xl font-bold text-ink-900 sm:text-2xl">수도권 채용공고 + 전북 일자리 비교 에이전트</h1>
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 space-y-3">
           <DemoModeNotice />
+          <LoginStatusBar loggedIn={loggedIn} onLogin={handleLogin} onLogout={handleLogout} />
         </div>
 
         <p className="mt-4 text-sm leading-relaxed text-ink-500">
-          수도권 채용공고를 입력하면 같은 직종·고용형태의 전북 비교 후보를 찾고, 두 공고를 6개 항목으로 감사한 뒤
-          모호하거나 없는 조건을 확인 질문으로 보여드려요. 이후 입력한 소득·주거비로 자금축적을 비교할 수 있어요.
+          아래 수도권 채용공고 목록에서 관심 있는 공고의 <strong className="text-ink-700">내 지역 유사 일자리 보기</strong>를
+          누르면, 전북 일자리 비교 에이전트가 직무·고용조건을 기준으로 비교 가능한 전북 공고를 찾아 같은 화면에서
+          보여드려요. 추천은 기업 우수성 평가가 아닌 공고 간 비교 결과이며, 확인되지 않은 정보는 추정하지 않습니다.
         </p>
 
-        <div className="mt-6 flex gap-3 rounded-card border border-ink-border bg-surface-muted p-5">
-          <Info size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-brand-blue" />
-          <div className="text-sm leading-relaxed text-ink-500">
-            <p className="font-semibold text-ink-900">현재 MVP에서는 다음 기능이 없습니다.</p>
-            <ul className="mt-2 list-inside list-disc space-y-1">
-              <li>URL에서 채용공고 자동 수집</li>
-              <li>PDF 업로드 및 분석</li>
-              <li>민간 채용사이트 자동 스크래핑</li>
-            </ul>
-            <p className="mt-2">
-              출처 URL은 <strong className="text-ink-700">원문 출처를 표시하기 위한 용도로만</strong> 사용되며,
-              자동으로 내용을 가져오지 않아요.
+        <div className="mt-6">
+          {listingState.status === 'loading' && (
+            <p className="flex items-center gap-2 text-sm text-ink-500">
+              <Loader2 size={16} aria-hidden="true" className="animate-spin" />
+              수도권 채용공고 목록을 불러오고 있어요...
             </p>
-          </div>
+          )}
+
+          {listingState.status === 'error' && (
+            <p role="alert" className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+              <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
+              {errorCodeToMessage(listingState.error.code, listingState.error.message)}
+            </p>
+          )}
+
+          {listingState.status === 'success' && listingState.postings.length === 0 && (
+            <p className="rounded-card border border-ink-border bg-surface-muted p-4 text-sm text-ink-700">
+              현재 표시할 수도권 채용공고가 없습니다.
+            </p>
+          )}
+
+          {listingState.status === 'success' && listingState.postings.length > 0 && (
+            <div className="space-y-4">
+              <p className="flex items-center gap-1.5 text-xs text-ink-400">
+                <ListChecks size={13} aria-hidden="true" />
+                {listingState.datasetDescription}
+              </p>
+              <ul className="space-y-4">
+                {listingState.postings.map((posting) => (
+                  <CapitalPostingCard
+                    key={posting.posting_id}
+                    posting={posting}
+                    homeRegionLabel={loggedIn ? DEMO_PROFILE.homeRegionLabel : listingState.homeRegion}
+                  />
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-6">
-          <div>
-            <label htmlFor={categoryId} className="block text-sm font-semibold text-ink-900">
-              관심 직종
-            </label>
-            <input
-              id={categoryId}
-              list={categoryListId}
-              type="text"
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              placeholder="예: 생산직(제조 조립원)"
-              aria-invalid={Boolean(errors.category)}
-              aria-describedby={errors.category ? `${categoryId}-error` : undefined}
-              className={`mt-2 w-full rounded-card border bg-white px-4 py-3 text-sm text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-brand-blue ${
-                errors.category ? 'border-red-400' : 'border-ink-border'
-              }`}
-            />
-            <datalist id={categoryListId}>
-              {jobCategoryOptions.map((option) => (
-                <option key={option} value={option} />
-              ))}
-            </datalist>
-            {errors.category && (
-              <p id={`${categoryId}-error`} className="mt-1.5 text-xs font-medium text-red-500">
-                {errors.category}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor={bodyId} className="block text-sm font-semibold text-ink-900">
-              채용공고 본문 <span className="font-normal text-ink-400">(수도권 채용공고)</span>
-            </label>
-            <textarea
-              id={bodyId}
-              value={form.body}
-              onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-              placeholder="수도권 채용공고 본문을 직접 붙여넣어 주세요."
-              rows={10}
-              aria-invalid={Boolean(errors.body)}
-              aria-describedby={errors.body ? `${bodyId}-error` : undefined}
-              className={`mt-2 w-full resize-y rounded-card border bg-white px-4 py-3 text-sm leading-relaxed text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-brand-blue ${
-                errors.body ? 'border-red-400' : 'border-ink-border'
-              }`}
-            />
-            {errors.body && (
-              <p id={`${bodyId}-error`} className="mt-1.5 text-xs font-medium text-red-500">
-                {errors.body}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor={urlId} className="block text-sm font-semibold text-ink-900">
-              원문 출처 URL <span className="font-normal text-ink-400">(선택 입력)</span>
-            </label>
-            <div className="mt-2 flex items-center gap-2 rounded-card border border-ink-border bg-white px-4 py-3 focus-within:border-brand-blue">
-              <Link2 size={16} aria-hidden="true" className="shrink-0 text-ink-400" />
-              <input
-                id={urlId}
-                type="url"
-                value={form.sourceUrl}
-                onChange={(e) => setForm((f) => ({ ...f, sourceUrl: e.target.value }))}
-                placeholder="https://example.com/notice/12345"
-                className="w-full min-w-0 bg-transparent text-sm text-ink-900 outline-none placeholder:text-ink-400"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col-reverse gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={handleLoadDemo}
-              className="rounded-pill border border-ink-border bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-blue hover:text-brand-blue active:scale-95"
-            >
-              데모 공고 불러오기
-            </button>
-            <button
-              type="submit"
-              className="rounded-pill bg-brand-blue px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-blue-dark active:scale-95"
-            >
-              공고 분석하기
-            </button>
-          </div>
-        </form>
-
-        {submitted && (
-          <div className="mt-8 space-y-6">
-            <div role="status" aria-live="polite" className="rounded-card border border-ink-border bg-tint-mint/40 p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={20} aria-hidden="true" className="text-brand-green" />
-                  <p className="font-semibold text-ink-900">입력 내용을 확인했어요</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={resetFlow}
-                  className="flex items-center gap-1 text-xs font-medium text-ink-500 hover:text-brand-blue"
-                >
-                  <RotateCcw size={13} aria-hidden="true" />
-                  처음부터 다시
-                </button>
-              </div>
-              <dl className="mt-4 space-y-3 text-sm">
-                <div>
-                  <dt className="font-medium text-ink-500">관심 직종</dt>
-                  <dd className="mt-0.5 text-ink-900">{submitted.category}</dd>
-                </div>
-              </dl>
-            </div>
-
-            <section aria-labelledby="candidates-heading" className="space-y-3">
-              <h2 id="candidates-heading" className="text-lg font-bold text-ink-900">
-                전북 비교 후보
-              </h2>
-
-              {candidatesState.status === 'loading' && (
-                <p className="flex items-center gap-2 text-sm text-ink-500">
-                  <Loader2 size={16} aria-hidden="true" className="animate-spin" />
-                  전북 비교 후보를 찾고 있어요...
-                </p>
-              )}
-
-              {candidatesState.status === 'empty' && (
-                <p className="rounded-card border border-ink-border bg-surface-muted p-4 text-sm text-ink-700">
-                  현재 검증된 전북 비교 후보가 없습니다.
-                </p>
-              )}
-
-              {candidatesState.status === 'error' && (
-                <p role="alert" className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-                  <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-                  {errorCodeToMessage(candidatesState.error.code, candidatesState.error.message)}
-                </p>
-              )}
-
-              {candidatesState.status === 'success' && (
-                <JeonbukCandidateList
-                  candidates={candidatesState.candidates}
-                  datasetDescription={candidatesState.datasetDescription}
-                  selectedPostingId={selectedCandidate?.posting_id ?? null}
-                  onSelect={(candidate) => void handleSelectCandidate(candidate)}
-                />
-              )}
-            </section>
-
-            {selectedCandidate && (
-              <section aria-labelledby="analysis-heading" className="space-y-3">
-                <h2 id="analysis-heading" className="text-lg font-bold text-ink-900">
-                  6개 항목 분석
-                </h2>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <PostingAnalysisPanel title="수도권 공고" state={metroAnalysis} />
-                  <PostingAnalysisPanel
-                    title={`전북 후보 (${selectedCandidate.company_name ?? selectedCandidate.posting_id})`}
-                    state={jeonbukAnalysis}
-                  />
-                </div>
-                <GapStatsNotice />
-              </section>
-            )}
-
-            {analysisSettled && (
-              <section aria-labelledby="finance-heading" className="space-y-3">
-                <h2 id="finance-heading" className="text-lg font-bold text-ink-900">
-                  자금축적 비교
-                </h2>
-                <FinanceComparisonPanel />
-              </section>
-            )}
-          </div>
-        )}
+        <div className="mt-10 border-t border-ink-border pt-6 text-center">
+          <Link to="/manual-analysis" className="text-xs font-medium text-ink-400 underline hover:text-brand-blue">
+            다른 공고 직접 비교 (수동 붙여넣기)
+          </Link>
+        </div>
       </Container>
     </div>
   )
-}
-
-function toApiClientError(reason: unknown): ApiClientError {
-  if (reason instanceof ApiClientError) return reason
-  return new ApiClientError({ code: 'unexpected_response', message: '알 수 없는 오류가 발생했습니다.' })
 }

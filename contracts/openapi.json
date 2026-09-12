@@ -111,6 +111,112 @@
         }
       }
     },
+    "/api/v1/postings/home-region-listing": {
+      "get": {
+        "tags": [
+          "postings"
+        ],
+        "summary": "Home Region Listing",
+        "description": "Public metadata for every real capital-area posting in the curated\nbatch (never full_text). See app.services.real_postings module docstring.",
+        "operationId": "home_region_listing_api_v1_postings_home_region_listing_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/postings/home-region-matches": {
+      "post": {
+        "tags": [
+          "postings"
+        ],
+        "summary": "Home Region Matches",
+        "description": "Real curated-pair candidates for one capital-area posting, scoped to\nthe server-configured home region only -- the request has no field a\nclient could use to ask for a different region.",
+        "operationId": "home_region_matches_api_v1_postings_home_region_matches_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HomeRegionMatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/postings/analyze-by-id": {
+      "post": {
+        "tags": [
+          "postings"
+        ],
+        "summary": "Analyze By Id",
+        "description": "Resolves posting_id -> private full text server-side (never returned\nto the client raw) and runs it through the exact same analyze_posting()\npipeline as /postings/analyze. Raises PrivateDataUnavailableError (503)\nif this machine has no private copy for posting_id right now.",
+        "operationId": "analyze_by_id_api_v1_postings_analyze_by_id_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeByIdRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingAnalysis"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/finance/compare": {
       "post": {
         "tags": [
@@ -185,7 +291,8 @@
               "analysis_failed",
               "provider_unavailable",
               "no_match_found",
-              "data_not_ready"
+              "data_not_ready",
+              "private_data_unavailable"
             ],
             "title": "Code"
           },
@@ -213,6 +320,32 @@
           "message"
         ],
         "title": "APIError"
+      },
+      "AnalyzeByIdRequest": {
+        "properties": {
+          "posting_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Posting Id"
+          },
+          "expected_occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Occupation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "posting_id"
+        ],
+        "title": "AnalyzeByIdRequest"
       },
       "AuditedField": {
         "properties": {
@@ -733,6 +866,22 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HomeRegionMatchRequest": {
+        "properties": {
+          "metro_posting_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Metro Posting Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "metro_posting_id"
+        ],
+        "title": "HomeRegionMatchRequest",
+        "description": "Client supplies only which capital-area posting it's looking at --\nnever a region. The home region is always the server-configured value\n(see app.datasets.loader.home_region()); there is no field here a\nclient could set to request a different one."
+      },
       "MatchCandidate": {
         "properties": {
           "posting_id": {
@@ -1048,6 +1197,118 @@
           "source_text"
         ],
         "title": "PostingInput"
+      },
+      "PostingListItem": {
+        "properties": {
+          "posting_id": {
+            "type": "string",
+            "title": "Posting Id"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name"
+          },
+          "region": {
+            "type": "string",
+            "title": "Region"
+          },
+          "municipality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipality"
+          },
+          "occupation": {
+            "type": "string",
+            "title": "Occupation"
+          },
+          "employment_type": {
+            "type": "string",
+            "title": "Employment Type"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "collection_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Date"
+          },
+          "is_synthetic": {
+            "type": "boolean",
+            "title": "Is Synthetic",
+            "default": false
+          },
+          "private_text_available": {
+            "type": "boolean",
+            "title": "Private Text Available",
+            "description": "Computed at request time from whether data/private/intake_raw/<id>.json actually exists on this machine right now -- not a static claim carried over from the public dataset row."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "posting_id",
+          "region",
+          "occupation",
+          "employment_type",
+          "private_text_available"
+        ],
+        "title": "PostingListItem"
+      },
+      "PostingListResponse": {
+        "properties": {
+          "home_region": {
+            "type": "string",
+            "title": "Home Region",
+            "description": "The server-configured home region this deployment is scoped to."
+          },
+          "postings": {
+            "items": {
+              "$ref": "#/components/schemas/PostingListItem"
+            },
+            "type": "array",
+            "title": "Postings"
+          },
+          "dataset_description": {
+            "type": "string",
+            "title": "Dataset Description"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "home_region",
+          "postings",
+          "dataset_description"
+        ],
+        "title": "PostingListResponse"
       },
       "ValidationError": {
         "properties": {

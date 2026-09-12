@@ -64,8 +64,18 @@ def _dataset_path() -> Path:
     return Path(override) if override else _DEFAULT_FIXTURE_PATH
 
 
+def home_region() -> str:
+    """The single region this deployment's matcher is scoped to. Defaults to
+    'jeonbuk' (this MVP's only home-region dataset). A future multi-region
+    rollout swaps this one value (and the dataset it points at via
+    JEONBUK_DATASET_PATH) per deployment -- the matching code itself never
+    changes, and the client can never override this by request parameter.
+    """
+    return os.environ.get("DEMO_HOME_REGION", "jeonbuk").strip().lower()
+
+
 @lru_cache(maxsize=8)
-def _load_from_path(path_str: str) -> List[JeonbukPostingRecord]:
+def _load_from_path(path_str: str, region: str) -> List[JeonbukPostingRecord]:
     path = Path(path_str)
     if not path.exists():
         return []
@@ -77,15 +87,17 @@ def _load_from_path(path_str: str) -> List[JeonbukPostingRecord]:
                 continue
             record = JeonbukPostingRecord.model_validate(json.loads(line))
             # The integrated data file contains both members of each matched
-            # pair.  This loader is intentionally Jeonbuk-only so a metro row
-            # can never be returned as a local candidate through a default.
-            if record.region.strip().lower() == "jeonbuk":
+            # pair. This loader only ever returns the configured home
+            # region's rows, so a capital-area row (or another region's row)
+            # can never be returned as a local candidate through a default --
+            # regardless of what a client requests.
+            if record.region.strip().lower() == region:
                 records.append(record)
     return records
 
 
 def load_jeonbuk_dataset() -> List[JeonbukPostingRecord]:
-    return _load_from_path(str(_dataset_path()))
+    return _load_from_path(str(_dataset_path()), home_region())
 
 
 def dataset_is_available() -> bool:

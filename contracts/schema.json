@@ -1510,7 +1510,8 @@
               "analysis_failed",
               "provider_unavailable",
               "no_match_found",
-              "data_not_ready"
+              "data_not_ready",
+              "private_data_unavailable"
             ],
             "title": "Code",
             "type": "string"
@@ -1720,7 +1721,8 @@
           "analysis_failed",
           "provider_unavailable",
           "no_match_found",
-          "data_not_ready"
+          "data_not_ready",
+          "private_data_unavailable"
         ],
         "title": "Code",
         "type": "string"
@@ -1748,6 +1750,255 @@
       "message"
     ],
     "title": "APIError",
+    "type": "object"
+  },
+  "PostingListItem": {
+    "additionalProperties": false,
+    "properties": {
+      "posting_id": {
+        "title": "Posting Id",
+        "type": "string"
+      },
+      "company_name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Company Name"
+      },
+      "region": {
+        "title": "Region",
+        "type": "string"
+      },
+      "municipality": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Municipality"
+      },
+      "occupation": {
+        "title": "Occupation",
+        "type": "string"
+      },
+      "employment_type": {
+        "title": "Employment Type",
+        "type": "string"
+      },
+      "source_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Source Url"
+      },
+      "collection_date": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Collection Date"
+      },
+      "is_synthetic": {
+        "default": false,
+        "title": "Is Synthetic",
+        "type": "boolean"
+      },
+      "private_text_available": {
+        "description": "Computed at request time from whether data/private/intake_raw/<id>.json actually exists on this machine right now -- not a static claim carried over from the public dataset row.",
+        "title": "Private Text Available",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "posting_id",
+      "region",
+      "occupation",
+      "employment_type",
+      "private_text_available"
+    ],
+    "title": "PostingListItem",
+    "type": "object"
+  },
+  "PostingListResponse": {
+    "$defs": {
+      "PostingListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "posting_id": {
+            "title": "Posting Id",
+            "type": "string"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Company Name"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
+          "municipality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Municipality"
+          },
+          "occupation": {
+            "title": "Occupation",
+            "type": "string"
+          },
+          "employment_type": {
+            "title": "Employment Type",
+            "type": "string"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Url"
+          },
+          "collection_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Collection Date"
+          },
+          "is_synthetic": {
+            "default": false,
+            "title": "Is Synthetic",
+            "type": "boolean"
+          },
+          "private_text_available": {
+            "description": "Computed at request time from whether data/private/intake_raw/<id>.json actually exists on this machine right now -- not a static claim carried over from the public dataset row.",
+            "title": "Private Text Available",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "posting_id",
+          "region",
+          "occupation",
+          "employment_type",
+          "private_text_available"
+        ],
+        "title": "PostingListItem",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "home_region": {
+        "description": "The server-configured home region this deployment is scoped to.",
+        "title": "Home Region",
+        "type": "string"
+      },
+      "postings": {
+        "items": {
+          "$ref": "#/$defs/PostingListItem"
+        },
+        "title": "Postings",
+        "type": "array"
+      },
+      "dataset_description": {
+        "title": "Dataset Description",
+        "type": "string"
+      }
+    },
+    "required": [
+      "home_region",
+      "postings",
+      "dataset_description"
+    ],
+    "title": "PostingListResponse",
+    "type": "object"
+  },
+  "HomeRegionMatchRequest": {
+    "additionalProperties": false,
+    "description": "Client supplies only which capital-area posting it's looking at --\nnever a region. The home region is always the server-configured value\n(see app.datasets.loader.home_region()); there is no field here a\nclient could set to request a different one.",
+    "properties": {
+      "metro_posting_id": {
+        "minLength": 1,
+        "title": "Metro Posting Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "metro_posting_id"
+    ],
+    "title": "HomeRegionMatchRequest",
+    "type": "object"
+  },
+  "AnalyzeByIdRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "posting_id": {
+        "minLength": 1,
+        "title": "Posting Id",
+        "type": "string"
+      },
+      "expected_occupation": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Expected Occupation"
+      }
+    },
+    "required": [
+      "posting_id"
+    ],
+    "title": "AnalyzeByIdRequest",
     "type": "object"
   }
 }

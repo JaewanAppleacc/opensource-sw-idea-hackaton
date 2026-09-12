@@ -110,6 +110,36 @@ export interface MatchResponse {
   dataset_description: string
 }
 
+// ---- Home-region listing/matching contract (matches backend/app/models/listing.py) ----
+
+export interface PostingListItem {
+  posting_id: string
+  company_name: string | null
+  region: string
+  municipality: string | null
+  occupation: string
+  employment_type: string
+  source_url: string | null
+  collection_date: string | null
+  is_synthetic: boolean
+  private_text_available: boolean
+}
+
+export interface PostingListResponse {
+  home_region: string
+  postings: PostingListItem[]
+  dataset_description: string
+}
+
+export interface HomeRegionMatchRequest {
+  metro_posting_id: string
+}
+
+export interface AnalyzeByIdRequest {
+  posting_id: string
+  expected_occupation?: string | null
+}
+
 // ---- Finance contract (matches backend/app/models/finance.py) ----
 
 export interface FinancialOption {
@@ -192,6 +222,7 @@ export type ApiErrorCode =
   | 'provider_unavailable'
   | 'no_match_found'
   | 'data_not_ready'
+  | 'private_data_unavailable'
   // Frontend-only codes: the backend never returns these, but the UI needs
   // a typed way to represent "we never got a real error envelope back".
   | 'network_error'
@@ -314,4 +345,30 @@ export function compareFinance(
 
 export function getGapStats(options?: RequestOptions): Promise<GapStatsResponse> {
   return apiFetch<GapStatsResponse>('/api/v1/data/gap-stats', { method: 'GET' }, options)
+}
+
+export function getHomeRegionListing(options?: RequestOptions): Promise<PostingListResponse> {
+  return apiFetch<PostingListResponse>('/api/v1/postings/home-region-listing', { method: 'GET' }, options)
+}
+
+export function getHomeRegionMatches(
+  request: HomeRegionMatchRequest,
+  options?: RequestOptions,
+): Promise<MatchResponse> {
+  return apiFetch<MatchResponse>(
+    '/api/v1/postings/home-region-matches',
+    { method: 'POST', body: JSON.stringify(request) },
+    options,
+  )
+}
+
+export function analyzeByPostingId(
+  request: AnalyzeByIdRequest,
+  options?: RequestOptions,
+): Promise<PostingAnalysis> {
+  return apiFetch<PostingAnalysis>(
+    '/api/v1/postings/analyze-by-id',
+    { method: 'POST', body: JSON.stringify(request) },
+    options,
+  )
 }

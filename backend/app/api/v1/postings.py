@@ -2,11 +2,17 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from ...models.listing import AnalyzeByIdRequest, HomeRegionMatchRequest, PostingListResponse
 from ...models.match import MatchRequest, MatchResponse
 from ...models.posting import PostingAnalysis, PostingInput
 from ...providers.factory import get_provider
 from ...services.audit_pipeline import analyze_posting
 from ...services.matching import DATASET_DESCRIPTION, find_matches
+from ...services.real_postings import (
+    find_home_region_matches,
+    list_capital_area_postings,
+    resolve_private_text,
+)
 
 router = APIRouter()
 
@@ -26,3 +32,37 @@ def match(request: MatchRequest) -> MatchResponse:
         candidates=candidates,
         dataset_description=DATASET_DESCRIPTION,
     )
+
+
+@router.get("/postings/home-region-listing", response_model=PostingListResponse)
+def home_region_listing() -> PostingListResponse:
+    """Public metadata for every real capital-area posting in the curated
+    batch (never full_text). See app.services.real_postings module docstring.
+    """
+    return list_capital_area_postings()
+
+
+@router.post("/postings/home-region-matches", response_model=MatchResponse)
+def home_region_matches(request: HomeRegionMatchRequest) -> MatchResponse:
+    """Real curated-pair candidates for one capital-area posting, scoped to
+    the server-configured home region only -- the request has no field a
+    client could use to ask for a different region.
+    """
+    return find_home_region_matches(request.metro_posting_id)
+
+
+@router.post("/postings/analyze-by-id", response_model=PostingAnalysis)
+def analyze_by_id(request: AnalyzeByIdRequest) -> PostingAnalysis:
+    """Resolves posting_id -> private full text server-side (never returned
+    to the client raw) and runs it through the exact same analyze_posting()
+    pipeline as /postings/analyze. Raises PrivateDataUnavailableError (503)
+    if this machine has no private copy for posting_id right now.
+    """
+    full_text, private_occupation = resolve_private_text(request.posting_id)
+    provider = get_provider()
+    posting_input = PostingInput(
+        posting_id=request.posting_id,
+        source_text=full_text,
+        expected_occupation=request.expected_occupation or private_occupation,
+    )
+    return analyze_posting(posting_input, provider)
