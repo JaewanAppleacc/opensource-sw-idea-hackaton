@@ -1,0 +1,1633 @@
+{
+  "PostingInput": {
+    "additionalProperties": false,
+    "properties": {
+      "posting_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Posting Id"
+      },
+      "source_text": {
+        "minLength": 1,
+        "title": "Source Text",
+        "type": "string"
+      },
+      "source_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Source Url"
+      },
+      "expected_occupation": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Expected Occupation"
+      }
+    },
+    "required": [
+      "source_text"
+    ],
+    "title": "PostingInput",
+    "type": "object"
+  },
+  "PostingAnalysis": {
+    "$defs": {
+      "AuditedField": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "enum": [
+              "salary",
+              "duties",
+              "tools_or_skills",
+              "training_or_mentoring",
+              "probation_terms",
+              "employment_type"
+            ],
+            "title": "Field",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "confirmed",
+              "vague",
+              "absent"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/EvidenceSpan"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "reason_code": {
+            "description": "Deterministic rule code explaining the status decision.",
+            "minLength": 1,
+            "title": "Reason Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "status",
+          "reason_code"
+        ],
+        "title": "AuditedField",
+        "type": "object"
+      },
+      "EvidenceSpan": {
+        "additionalProperties": false,
+        "description": "An exact, offset-verifiable quote from the source posting text.",
+        "properties": {
+          "text": {
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "start": {
+            "minimum": 0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "end": {
+            "exclusiveMinimum": 0,
+            "title": "End",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text",
+          "start",
+          "end"
+        ],
+        "title": "EvidenceSpan",
+        "type": "object"
+      },
+      "ExternalContext": {
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          },
+          "reference_date": {
+            "description": "ISO-8601 date the external figure was published or fetched.",
+            "title": "Reference Date",
+            "type": "string"
+          },
+          "description": {
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "limitations": {
+            "minLength": 1,
+            "title": "Limitations",
+            "type": "string"
+          },
+          "values": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "object"
+          }
+        },
+        "required": [
+          "source",
+          "reference_date",
+          "description",
+          "limitations"
+        ],
+        "title": "ExternalContext",
+        "type": "object"
+      },
+      "ValidationWarning": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "enum": [
+                  "salary",
+                  "duties",
+                  "tools_or_skills",
+                  "training_or_mentoring",
+                  "probation_terms",
+                  "employment_type"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Field"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ValidationWarning",
+        "type": "object"
+      },
+      "VerificationAction": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "enum": [
+              "salary",
+              "duties",
+              "tools_or_skills",
+              "training_or_mentoring",
+              "probation_terms",
+              "employment_type"
+            ],
+            "title": "Field",
+            "type": "string"
+          },
+          "channel": {
+            "enum": [
+              "email",
+              "phone",
+              "interview",
+              "document_review",
+              "pre_contract"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "prompt": {
+            "minLength": 1,
+            "title": "Prompt",
+            "type": "string"
+          },
+          "triggered_by_status": {
+            "enum": [
+              "vague",
+              "absent"
+            ],
+            "title": "Triggered By Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "channel",
+          "prompt",
+          "triggered_by_status"
+        ],
+        "title": "VerificationAction",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "posting_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Posting Id"
+      },
+      "occupation": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Occupation"
+      },
+      "employment_type": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Employment Type"
+      },
+      "fields": {
+        "additionalProperties": {
+          "$ref": "#/$defs/AuditedField"
+        },
+        "propertyNames": {
+          "enum": [
+            "salary",
+            "duties",
+            "tools_or_skills",
+            "training_or_mentoring",
+            "probation_terms",
+            "employment_type"
+          ]
+        },
+        "title": "Fields",
+        "type": "object"
+      },
+      "verification_actions": {
+        "items": {
+          "$ref": "#/$defs/VerificationAction"
+        },
+        "title": "Verification Actions",
+        "type": "array"
+      },
+      "validation_warnings": {
+        "items": {
+          "$ref": "#/$defs/ValidationWarning"
+        },
+        "title": "Validation Warnings",
+        "type": "array"
+      },
+      "external_context": {
+        "items": {
+          "$ref": "#/$defs/ExternalContext"
+        },
+        "title": "External Context",
+        "type": "array"
+      }
+    },
+    "required": [
+      "fields"
+    ],
+    "title": "PostingAnalysis",
+    "type": "object"
+  },
+  "AuditedField": {
+    "$defs": {
+      "EvidenceSpan": {
+        "additionalProperties": false,
+        "description": "An exact, offset-verifiable quote from the source posting text.",
+        "properties": {
+          "text": {
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "start": {
+            "minimum": 0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "end": {
+            "exclusiveMinimum": 0,
+            "title": "End",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text",
+          "start",
+          "end"
+        ],
+        "title": "EvidenceSpan",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "field": {
+        "enum": [
+          "salary",
+          "duties",
+          "tools_or_skills",
+          "training_or_mentoring",
+          "probation_terms",
+          "employment_type"
+        ],
+        "title": "Field",
+        "type": "string"
+      },
+      "status": {
+        "enum": [
+          "confirmed",
+          "vague",
+          "absent"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "evidence": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/EvidenceSpan"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "reason_code": {
+        "description": "Deterministic rule code explaining the status decision.",
+        "minLength": 1,
+        "title": "Reason Code",
+        "type": "string"
+      }
+    },
+    "required": [
+      "field",
+      "status",
+      "reason_code"
+    ],
+    "title": "AuditedField",
+    "type": "object"
+  },
+  "EvidenceSpan": {
+    "additionalProperties": false,
+    "description": "An exact, offset-verifiable quote from the source posting text.",
+    "properties": {
+      "text": {
+        "minLength": 1,
+        "title": "Text",
+        "type": "string"
+      },
+      "start": {
+        "minimum": 0,
+        "title": "Start",
+        "type": "integer"
+      },
+      "end": {
+        "exclusiveMinimum": 0,
+        "title": "End",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "text",
+      "start",
+      "end"
+    ],
+    "title": "EvidenceSpan",
+    "type": "object"
+  },
+  "VerificationAction": {
+    "additionalProperties": false,
+    "properties": {
+      "field": {
+        "enum": [
+          "salary",
+          "duties",
+          "tools_or_skills",
+          "training_or_mentoring",
+          "probation_terms",
+          "employment_type"
+        ],
+        "title": "Field",
+        "type": "string"
+      },
+      "channel": {
+        "enum": [
+          "email",
+          "phone",
+          "interview",
+          "document_review",
+          "pre_contract"
+        ],
+        "title": "Channel",
+        "type": "string"
+      },
+      "prompt": {
+        "minLength": 1,
+        "title": "Prompt",
+        "type": "string"
+      },
+      "triggered_by_status": {
+        "enum": [
+          "vague",
+          "absent"
+        ],
+        "title": "Triggered By Status",
+        "type": "string"
+      }
+    },
+    "required": [
+      "field",
+      "channel",
+      "prompt",
+      "triggered_by_status"
+    ],
+    "title": "VerificationAction",
+    "type": "object"
+  },
+  "ValidationWarning": {
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "title": "Code",
+        "type": "string"
+      },
+      "field": {
+        "anyOf": [
+          {
+            "enum": [
+              "salary",
+              "duties",
+              "tools_or_skills",
+              "training_or_mentoring",
+              "probation_terms",
+              "employment_type"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Field"
+      },
+      "message": {
+        "title": "Message",
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ValidationWarning",
+    "type": "object"
+  },
+  "ExternalContext": {
+    "additionalProperties": false,
+    "properties": {
+      "source": {
+        "minLength": 1,
+        "title": "Source",
+        "type": "string"
+      },
+      "reference_date": {
+        "description": "ISO-8601 date the external figure was published or fetched.",
+        "title": "Reference Date",
+        "type": "string"
+      },
+      "description": {
+        "minLength": 1,
+        "title": "Description",
+        "type": "string"
+      },
+      "limitations": {
+        "minLength": 1,
+        "title": "Limitations",
+        "type": "string"
+      },
+      "values": {
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "title": "Values",
+        "type": "object"
+      }
+    },
+    "required": [
+      "source",
+      "reference_date",
+      "description",
+      "limitations"
+    ],
+    "title": "ExternalContext",
+    "type": "object"
+  },
+  "MatchRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "occupation": {
+        "minLength": 1,
+        "title": "Occupation",
+        "type": "string"
+      },
+      "employment_type": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Employment Type"
+      },
+      "posting_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Posting Id"
+      }
+    },
+    "required": [
+      "occupation"
+    ],
+    "title": "MatchRequest",
+    "type": "object"
+  },
+  "MatchCandidate": {
+    "additionalProperties": false,
+    "properties": {
+      "posting_id": {
+        "title": "Posting Id",
+        "type": "string"
+      },
+      "source_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Source Id"
+      },
+      "source_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Source Url"
+      },
+      "region": {
+        "title": "Region",
+        "type": "string"
+      },
+      "municipality": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Municipality"
+      },
+      "occupation": {
+        "title": "Occupation",
+        "type": "string"
+      },
+      "employment_type": {
+        "title": "Employment Type",
+        "type": "string"
+      },
+      "matching_fields": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Matching Fields",
+        "type": "array"
+      },
+      "mismatch_fields": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Mismatch Fields",
+        "type": "array"
+      },
+      "description": {
+        "description": "Plain statement that this candidate comes from a finite curated dataset, not a claim of best fit.",
+        "title": "Description",
+        "type": "string"
+      }
+    },
+    "required": [
+      "posting_id",
+      "region",
+      "occupation",
+      "employment_type",
+      "matching_fields",
+      "mismatch_fields",
+      "description"
+    ],
+    "title": "MatchCandidate",
+    "type": "object"
+  },
+  "MatchResponse": {
+    "$defs": {
+      "MatchCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "posting_id": {
+            "title": "Posting Id",
+            "type": "string"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Id"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Url"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
+          "municipality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Municipality"
+          },
+          "occupation": {
+            "title": "Occupation",
+            "type": "string"
+          },
+          "employment_type": {
+            "title": "Employment Type",
+            "type": "string"
+          },
+          "matching_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matching Fields",
+            "type": "array"
+          },
+          "mismatch_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Mismatch Fields",
+            "type": "array"
+          },
+          "description": {
+            "description": "Plain statement that this candidate comes from a finite curated dataset, not a claim of best fit.",
+            "title": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "posting_id",
+          "region",
+          "occupation",
+          "employment_type",
+          "matching_fields",
+          "mismatch_fields",
+          "description"
+        ],
+        "title": "MatchCandidate",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "query_occupation": {
+        "title": "Query Occupation",
+        "type": "string"
+      },
+      "query_employment_type": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Query Employment Type"
+      },
+      "candidates": {
+        "items": {
+          "$ref": "#/$defs/MatchCandidate"
+        },
+        "title": "Candidates",
+        "type": "array"
+      },
+      "dataset_description": {
+        "title": "Dataset Description",
+        "type": "string"
+      }
+    },
+    "required": [
+      "query_occupation",
+      "candidates",
+      "dataset_description"
+    ],
+    "title": "MatchResponse",
+    "type": "object"
+  },
+  "FinancialOption": {
+    "additionalProperties": false,
+    "properties": {
+      "label": {
+        "minLength": 1,
+        "title": "Label",
+        "type": "string"
+      },
+      "monthly_income_after_tax": {
+        "minimum": 0,
+        "title": "Monthly Income After Tax",
+        "type": "number"
+      },
+      "monthly_housing_cost": {
+        "description": "Housing cost including maintenance.",
+        "minimum": 0,
+        "title": "Monthly Housing Cost",
+        "type": "number"
+      },
+      "monthly_other_living_cost": {
+        "minimum": 0,
+        "title": "Monthly Other Living Cost",
+        "type": "number"
+      },
+      "deposit": {
+        "description": "Locked wealth, not consumption.",
+        "minimum": 0,
+        "title": "Deposit",
+        "type": "number"
+      }
+    },
+    "required": [
+      "label",
+      "monthly_income_after_tax",
+      "monthly_housing_cost",
+      "monthly_other_living_cost",
+      "deposit"
+    ],
+    "title": "FinancialOption",
+    "type": "object"
+  },
+  "FinancialAssumptions": {
+    "additionalProperties": false,
+    "properties": {
+      "annual_income_growth_rate": {
+        "default": 0.0,
+        "maximum": 1.0,
+        "minimum": -0.5,
+        "title": "Annual Income Growth Rate",
+        "type": "number"
+      },
+      "annual_cost_growth_rate": {
+        "default": 0.0,
+        "maximum": 1.0,
+        "minimum": -0.5,
+        "title": "Annual Cost Growth Rate",
+        "type": "number"
+      },
+      "rounding_unit_krw": {
+        "default": 100000,
+        "exclusiveMinimum": 0,
+        "title": "Rounding Unit Krw",
+        "type": "number"
+      }
+    },
+    "title": "FinancialAssumptions",
+    "type": "object"
+  },
+  "FinancialComparisonRequest": {
+    "$defs": {
+      "FinancialAssumptions": {
+        "additionalProperties": false,
+        "properties": {
+          "annual_income_growth_rate": {
+            "default": 0.0,
+            "maximum": 1.0,
+            "minimum": -0.5,
+            "title": "Annual Income Growth Rate",
+            "type": "number"
+          },
+          "annual_cost_growth_rate": {
+            "default": 0.0,
+            "maximum": 1.0,
+            "minimum": -0.5,
+            "title": "Annual Cost Growth Rate",
+            "type": "number"
+          },
+          "rounding_unit_krw": {
+            "default": 100000,
+            "exclusiveMinimum": 0,
+            "title": "Rounding Unit Krw",
+            "type": "number"
+          }
+        },
+        "title": "FinancialAssumptions",
+        "type": "object"
+      },
+      "FinancialOption": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "monthly_income_after_tax": {
+            "minimum": 0,
+            "title": "Monthly Income After Tax",
+            "type": "number"
+          },
+          "monthly_housing_cost": {
+            "description": "Housing cost including maintenance.",
+            "minimum": 0,
+            "title": "Monthly Housing Cost",
+            "type": "number"
+          },
+          "monthly_other_living_cost": {
+            "minimum": 0,
+            "title": "Monthly Other Living Cost",
+            "type": "number"
+          },
+          "deposit": {
+            "description": "Locked wealth, not consumption.",
+            "minimum": 0,
+            "title": "Deposit",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "monthly_income_after_tax",
+          "monthly_housing_cost",
+          "monthly_other_living_cost",
+          "deposit"
+        ],
+        "title": "FinancialOption",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "metropolitan": {
+        "$ref": "#/$defs/FinancialOption"
+      },
+      "jeonbuk": {
+        "$ref": "#/$defs/FinancialOption"
+      },
+      "assumptions": {
+        "$ref": "#/$defs/FinancialAssumptions"
+      }
+    },
+    "required": [
+      "metropolitan",
+      "jeonbuk"
+    ],
+    "title": "FinancialComparisonRequest",
+    "type": "object"
+  },
+  "FinancialComparison": {
+    "$defs": {
+      "CrossoverResult": {
+        "additionalProperties": false,
+        "properties": {
+          "varied_option": {
+            "title": "Varied Option",
+            "type": "string"
+          },
+          "comparison_option": {
+            "title": "Comparison Option",
+            "type": "string"
+          },
+          "varied_variable": {
+            "const": "monthly_housing_cost",
+            "title": "Varied Variable",
+            "type": "string"
+          },
+          "current_value": {
+            "title": "Current Value",
+            "type": "number"
+          },
+          "threshold_value": {
+            "title": "Threshold Value",
+            "type": "number"
+          },
+          "rounding_unit_krw": {
+            "title": "Rounding Unit Krw",
+            "type": "number"
+          },
+          "held_constant": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Held Constant",
+            "type": "object"
+          },
+          "interpretation": {
+            "title": "Interpretation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "varied_option",
+          "comparison_option",
+          "varied_variable",
+          "current_value",
+          "threshold_value",
+          "rounding_unit_krw",
+          "held_constant",
+          "interpretation"
+        ],
+        "title": "CrossoverResult",
+        "type": "object"
+      },
+      "FinancialAssumptions": {
+        "additionalProperties": false,
+        "properties": {
+          "annual_income_growth_rate": {
+            "default": 0.0,
+            "maximum": 1.0,
+            "minimum": -0.5,
+            "title": "Annual Income Growth Rate",
+            "type": "number"
+          },
+          "annual_cost_growth_rate": {
+            "default": 0.0,
+            "maximum": 1.0,
+            "minimum": -0.5,
+            "title": "Annual Cost Growth Rate",
+            "type": "number"
+          },
+          "rounding_unit_krw": {
+            "default": 100000,
+            "exclusiveMinimum": 0,
+            "title": "Rounding Unit Krw",
+            "type": "number"
+          }
+        },
+        "title": "FinancialAssumptions",
+        "type": "object"
+      },
+      "FinancialOptionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "monthly_surplus": {
+            "title": "Monthly Surplus",
+            "type": "number"
+          },
+          "one_year_liquid_cash": {
+            "title": "One Year Liquid Cash",
+            "type": "number"
+          },
+          "three_year_liquid_cash": {
+            "description": "Secondary, assumption-dependent projection using the named growth-rate assumptions.",
+            "title": "Three Year Liquid Cash",
+            "type": "number"
+          },
+          "deposit_locked": {
+            "title": "Deposit Locked",
+            "type": "number"
+          },
+          "one_year_total_with_deposit": {
+            "title": "One Year Total With Deposit",
+            "type": "number"
+          },
+          "three_year_total_with_deposit": {
+            "title": "Three Year Total With Deposit",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "monthly_surplus",
+          "one_year_liquid_cash",
+          "three_year_liquid_cash",
+          "deposit_locked",
+          "one_year_total_with_deposit",
+          "three_year_total_with_deposit"
+        ],
+        "title": "FinancialOptionResult",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "assumptions": {
+        "$ref": "#/$defs/FinancialAssumptions"
+      },
+      "options": {
+        "additionalProperties": {
+          "$ref": "#/$defs/FinancialOptionResult"
+        },
+        "title": "Options",
+        "type": "object"
+      },
+      "crossover": {
+        "$ref": "#/$defs/CrossoverResult"
+      },
+      "disclaimer": {
+        "title": "Disclaimer",
+        "type": "string"
+      }
+    },
+    "required": [
+      "assumptions",
+      "options",
+      "crossover",
+      "disclaimer"
+    ],
+    "title": "FinancialComparison",
+    "type": "object"
+  },
+  "FinancialOptionResult": {
+    "additionalProperties": false,
+    "properties": {
+      "label": {
+        "title": "Label",
+        "type": "string"
+      },
+      "monthly_surplus": {
+        "title": "Monthly Surplus",
+        "type": "number"
+      },
+      "one_year_liquid_cash": {
+        "title": "One Year Liquid Cash",
+        "type": "number"
+      },
+      "three_year_liquid_cash": {
+        "description": "Secondary, assumption-dependent projection using the named growth-rate assumptions.",
+        "title": "Three Year Liquid Cash",
+        "type": "number"
+      },
+      "deposit_locked": {
+        "title": "Deposit Locked",
+        "type": "number"
+      },
+      "one_year_total_with_deposit": {
+        "title": "One Year Total With Deposit",
+        "type": "number"
+      },
+      "three_year_total_with_deposit": {
+        "title": "Three Year Total With Deposit",
+        "type": "number"
+      }
+    },
+    "required": [
+      "label",
+      "monthly_surplus",
+      "one_year_liquid_cash",
+      "three_year_liquid_cash",
+      "deposit_locked",
+      "one_year_total_with_deposit",
+      "three_year_total_with_deposit"
+    ],
+    "title": "FinancialOptionResult",
+    "type": "object"
+  },
+  "CrossoverResult": {
+    "additionalProperties": false,
+    "properties": {
+      "varied_option": {
+        "title": "Varied Option",
+        "type": "string"
+      },
+      "comparison_option": {
+        "title": "Comparison Option",
+        "type": "string"
+      },
+      "varied_variable": {
+        "const": "monthly_housing_cost",
+        "title": "Varied Variable",
+        "type": "string"
+      },
+      "current_value": {
+        "title": "Current Value",
+        "type": "number"
+      },
+      "threshold_value": {
+        "title": "Threshold Value",
+        "type": "number"
+      },
+      "rounding_unit_krw": {
+        "title": "Rounding Unit Krw",
+        "type": "number"
+      },
+      "held_constant": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "title": "Held Constant",
+        "type": "object"
+      },
+      "interpretation": {
+        "title": "Interpretation",
+        "type": "string"
+      }
+    },
+    "required": [
+      "varied_option",
+      "comparison_option",
+      "varied_variable",
+      "current_value",
+      "threshold_value",
+      "rounding_unit_krw",
+      "held_constant",
+      "interpretation"
+    ],
+    "title": "CrossoverResult",
+    "type": "object"
+  },
+  "GapStats": {
+    "$defs": {
+      "GapStatsFilters": {
+        "additionalProperties": false,
+        "properties": {
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Region"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Occupation"
+          },
+          "employment_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Employment Type"
+          }
+        },
+        "title": "GapStatsFilters",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "sample_size_postings": {
+        "title": "Sample Size Postings",
+        "type": "integer"
+      },
+      "sample_size_cells": {
+        "title": "Sample Size Cells",
+        "type": "integer"
+      },
+      "filters": {
+        "$ref": "#/$defs/GapStatsFilters"
+      },
+      "rubric_version": {
+        "title": "Rubric Version",
+        "type": "string"
+      },
+      "label_proportions": {
+        "additionalProperties": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "propertyNames": {
+            "enum": [
+              "confirmed",
+              "vague",
+              "absent"
+            ]
+          },
+          "type": "object"
+        },
+        "propertyNames": {
+          "enum": [
+            "salary",
+            "duties",
+            "tools_or_skills",
+            "training_or_mentoring",
+            "probation_terms",
+            "employment_type"
+          ]
+        },
+        "title": "Label Proportions",
+        "type": "object"
+      },
+      "exploratory": {
+        "const": true,
+        "default": true,
+        "title": "Exploratory",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "sample_size_postings",
+      "sample_size_cells",
+      "filters",
+      "rubric_version",
+      "label_proportions"
+    ],
+    "title": "GapStats",
+    "type": "object"
+  },
+  "GapStatsFilters": {
+    "additionalProperties": false,
+    "properties": {
+      "region": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Region"
+      },
+      "occupation": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Occupation"
+      },
+      "employment_type": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Employment Type"
+      }
+    },
+    "title": "GapStatsFilters",
+    "type": "object"
+  },
+  "GapStatsResponse": {
+    "$defs": {
+      "APIError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "invalid_input",
+              "analysis_failed",
+              "provider_unavailable",
+              "no_match_found",
+              "data_not_ready"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Details"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "APIError",
+        "type": "object"
+      },
+      "GapStats": {
+        "additionalProperties": false,
+        "properties": {
+          "sample_size_postings": {
+            "title": "Sample Size Postings",
+            "type": "integer"
+          },
+          "sample_size_cells": {
+            "title": "Sample Size Cells",
+            "type": "integer"
+          },
+          "filters": {
+            "$ref": "#/$defs/GapStatsFilters"
+          },
+          "rubric_version": {
+            "title": "Rubric Version",
+            "type": "string"
+          },
+          "label_proportions": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "propertyNames": {
+                "enum": [
+                  "confirmed",
+                  "vague",
+                  "absent"
+                ]
+              },
+              "type": "object"
+            },
+            "propertyNames": {
+              "enum": [
+                "salary",
+                "duties",
+                "tools_or_skills",
+                "training_or_mentoring",
+                "probation_terms",
+                "employment_type"
+              ]
+            },
+            "title": "Label Proportions",
+            "type": "object"
+          },
+          "exploratory": {
+            "const": true,
+            "default": true,
+            "title": "Exploratory",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sample_size_postings",
+          "sample_size_cells",
+          "filters",
+          "rubric_version",
+          "label_proportions"
+        ],
+        "title": "GapStats",
+        "type": "object"
+      },
+      "GapStatsFilters": {
+        "additionalProperties": false,
+        "properties": {
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Region"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Occupation"
+          },
+          "employment_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Employment Type"
+          }
+        },
+        "title": "GapStatsFilters",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "ready": {
+        "title": "Ready",
+        "type": "boolean"
+      },
+      "stats": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/GapStats"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "error": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/APIError"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      }
+    },
+    "required": [
+      "ready"
+    ],
+    "title": "GapStatsResponse",
+    "type": "object"
+  },
+  "APIError": {
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "enum": [
+          "invalid_input",
+          "analysis_failed",
+          "provider_unavailable",
+          "no_match_found",
+          "data_not_ready"
+        ],
+        "title": "Code",
+        "type": "string"
+      },
+      "message": {
+        "title": "Message",
+        "type": "string"
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Details"
+      }
+    },
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "APIError",
+    "type": "object"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "rubric_version": "v1",
+  "records": [
+    {
+      "posting_id": "jb-001",
+      "region": "jeonbuk",
+      "occupation": "백엔드 개발자",
+      "employment_type": "정규직",
+      "fields": {
+        "salary": "confirmed",
+        "duties": "confirmed",
+        "tools_or_skills": "vague",
+        "training_or_mentoring": "absent",
+        "probation_terms": "confirmed",
+        "employment_type": "confirmed"
+      }
+    },
+    {
+      "posting_id": "jb-002",
+      "region": "jeonbuk",
+      "occupation": "백엔드 개발자",
+      "employment_type": "계약직",
+      "fields": {
+        "salary": "vague",
+        "duties": "confirmed",
+        "tools_or_skills": "confirmed",
+        "training_or_mentoring": "absent",
+        "probation_terms": "absent",
+        "employment_type": "confirmed"
+      }
+    },
+    {
+      "posting_id": "metro-001",
+      "region": "metropolitan",
+      "occupation": "백엔드 개발자",
+      "employment_type": "정규직",
+      "fields": {
+        "salary": "confirmed",
+        "duties": "vague",
+        "tools_or_skills": "confirmed",
+        "training_or_mentoring": "vague",
+        "probation_terms": "confirmed",
+        "employment_type": "confirmed"
+      }
+    }
+  ]
+}
