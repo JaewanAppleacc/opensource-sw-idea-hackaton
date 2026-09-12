@@ -13,9 +13,14 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
-_DEFAULT_FIXTURE_PATH = Path(__file__).with_name("jeonbuk_fixture.jsonl")
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_INTEGRATED_DATASET_PATH = _REPO_ROOT / "data" / "postings" / "postings.jsonl"
+_BACKEND_FIXTURE_PATH = Path(__file__).with_name("jeonbuk_fixture.jsonl")
+_DEFAULT_FIXTURE_PATH = (
+    _INTEGRATED_DATASET_PATH if _INTEGRATED_DATASET_PATH.exists() else _BACKEND_FIXTURE_PATH
+)
 
 
 class JeonbukPostingRecord(BaseModel):
@@ -31,6 +36,27 @@ class JeonbukPostingRecord(BaseModel):
     municipality: Optional[str] = None
     occupation: str
     employment_type: str
+    company_name: Optional[str] = None
+    full_text: Optional[str] = None
+    source_name: Optional[str] = None
+    is_synthetic: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def _adapt_data_track_record(cls, value: object) -> object:
+        """Accept both the backend fixture and the data-track JSONL schema."""
+        if not isinstance(value, dict):
+            return value
+        adapted = dict(value)
+        adapted.setdefault("region", adapted.get("region_group", "jeonbuk"))
+        adapted.setdefault("source_url", adapted.get("source_id_url"))
+        adapted.setdefault("source_id", adapted.get("source_name"))
+        adapted.setdefault(
+            "is_synthetic",
+            adapted.get("source_name") == "synthetic_fixture_v1"
+            or bool(adapted.get("synthetic_test_fixture")),
+        )
+        return adapted
 
 
 def _dataset_path() -> Path:
@@ -49,7 +75,12 @@ def _load_from_path(path_str: str) -> List[JeonbukPostingRecord]:
             line = line.strip()
             if not line:
                 continue
-            records.append(JeonbukPostingRecord.model_validate(json.loads(line)))
+            record = JeonbukPostingRecord.model_validate(json.loads(line))
+            # The integrated data file contains both members of each matched
+            # pair.  This loader is intentionally Jeonbuk-only so a metro row
+            # can never be returned as a local candidate through a default.
+            if record.region.strip().lower() == "jeonbuk":
+                records.append(record)
     return records
 
 

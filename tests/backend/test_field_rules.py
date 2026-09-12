@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from app.rules.field_rules import evaluate_confirmed
+from app.models.common import FIELD_NAMES
+from app.rules.field_rules import evaluate_confirmed, get_field_rules, rules_version
+
+
+def test_runtime_profile_is_version_aligned_and_covers_the_six_field_rubric():
+    assert rules_version() == "1.0.0-draft"
+    assert {get_field_rules(field).field for field in FIELD_NAMES} == set(FIELD_NAMES)
 
 
 def test_salary_confirmed_requires_amount_and_unit():

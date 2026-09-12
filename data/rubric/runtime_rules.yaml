@@ -1,0 +1,55 @@
+# Runtime profile compiled for the deterministic backend from rubric.yaml.
+# Keep `version` equal to rubric.yaml:rubric_version and keep the field set
+# identical. Human definitions and boundary examples remain canonical in
+# rubric.yaml; this file supplies only executable anchors and downgrade rules.
+version: "1.0.0-draft"
+source_rubric: "data/rubric/rubric.yaml"
+
+fields:
+  salary:
+    anchors: ["급여", "연봉", "월급", "임금", "보수", "salary", "pay"]
+    vague_markers: ["회사 내규", "협의 후 결정", "면접 후 결정", "추후 협의", "내규에 따름"]
+    relevance_keywords: ["급여", "연봉", "월급", "임금", "보수", "원", "만원", "salary"]
+    confirmed_rule: amount_and_unit
+    unit_keywords: ["원", "만원", "KRW", "연봉", "월급"]
+    amount_pattern: '\d[\d,]*\s*(만원|원|KRW)'
+
+  duties:
+    anchors: ["담당업무", "주요업무", "업무내용", "직무내용", "담당 업무", "업무"]
+    vague_markers: ["기타 업무", "협의 후 결정", "다양한 업무", "관련 업무 전반", "생산 관련 업무 전반", "그 외 업무"]
+    relevance_keywords: ["업무", "담당", "직무", "생산", "조립", "검사", "포장", "role", "duties"]
+    confirmed_rule: specific_keywords
+    min_length: 8
+    specific_keywords: ["개발", "설계", "운영", "관리", "분석", "기획", "제작", "구축", "테스트", "지원", "생산", "조립", "품질 검사", "포장", "용접", "가공"]
+
+  tools_or_skills:
+    anchors: ["사용언어", "기술스택", "요구기술", "필요역량", "사용 기술", "스킬", "우대사항", "자격", "장비"]
+    vague_markers: ["관련 역량", "관련 경험", "유사 경험", "커뮤니케이션 능력", "책임감", "성실함"]
+    relevance_keywords: ["기술", "스킬", "언어", "tool", "skill", "stack", "장비", "자격", "면허", "경험", "능력"]
+    confirmed_rule: specific_keywords
+    min_length: 4
+    specific_keywords: ["Python", "Java", "SQL", "React", "AWS", "Excel", "AutoCAD", "용접", "지게차", "선반", "밀링", "CAD", "PLC", "CNC", "사출 성형기", "캘리퍼스", "마이크로미터", "도면 해독", "크레인"]
+
+  training_or_mentoring:
+    anchors: ["멘토", "교육", "연수", "온보딩", "OJT", "사수", "수습기간 교육"]
+    vague_markers: ["체계적인 교육", "교육 시스템", "필요시 교육", "자체적으로 습득", "알아서 학습", "별도 없음"]
+    relevance_keywords: ["멘토", "교육", "연수", "OJT", "온보딩", "사수", "training", "mentor"]
+    confirmed_rule: specific_keywords
+    min_length: 6
+    specific_keywords: ["멘토", "1:1", "정기", "주", "개월", "프로그램", "교육과정", "사수", "매월", "매주"]
+
+  probation_terms:
+    anchors: ["수습", "수습기간", "수습 기간"]
+    vague_markers: ["별도 협의", "회사 내규에 따름", "협의 후 결정", "면접 시 안내"]
+    relevance_keywords: ["수습"]
+    confirmed_rule: duration_and_condition
+    duration_pattern: '\d+\s*(개월|주|일)'
+    condition_keywords: ["%", "동일", "차등", "원", "만원", "급여", "지급"]
+
+  employment_type:
+    anchors: ["고용형태", "채용형태", "정규직", "계약직", "인턴", "파견"]
+    vague_markers: ["추후 결정", "협의 후 결정", "면접 후 결정", "채용 후 결정"]
+    relevance_keywords: ["정규직", "계약직", "인턴", "파견", "고용형태", "채용형태"]
+    confirmed_rule: specific_keywords
+    min_length: 2
+    specific_keywords: ["정규직", "계약직", "인턴", "파견직", "파견"]

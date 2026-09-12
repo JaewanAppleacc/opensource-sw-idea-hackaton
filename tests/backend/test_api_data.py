@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from conftest import FIXTURES_DIR
+from pathlib import Path
+
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
 
 def test_gap_stats_refuses_when_no_gold_labels_present(client, monkeypatch):

@@ -686,6 +686,36 @@
         "title": "Employment Type",
         "type": "string"
       },
+      "company_name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Company Name"
+      },
+      "source_text": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Posting text when the configured source permits runtime display; may be null.",
+        "title": "Source Text"
+      },
+      "is_synthetic": {
+        "default": false,
+        "title": "Is Synthetic",
+        "type": "boolean"
+      },
       "matching_fields": {
         "items": {
           "type": "string"
@@ -774,6 +804,36 @@
           "employment_type": {
             "title": "Employment Type",
             "type": "string"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Company Name"
+          },
+          "source_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Posting text when the configured source permits runtime display; may be null.",
+            "title": "Source Text"
+          },
+          "is_synthetic": {
+            "default": false,
+            "title": "Is Synthetic",
+            "type": "boolean"
           },
           "matching_fields": {
             "items": {
@@ -1349,6 +1409,36 @@
         "title": "Label Proportions",
         "type": "object"
       },
+      "label_proportions_by_region": {
+        "additionalProperties": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "propertyNames": {
+              "enum": [
+                "confirmed",
+                "vague",
+                "absent"
+              ]
+            },
+            "type": "object"
+          },
+          "propertyNames": {
+            "enum": [
+              "salary",
+              "duties",
+              "tools_or_skills",
+              "training_or_mentoring",
+              "probation_terms",
+              "employment_type"
+            ]
+          },
+          "type": "object"
+        },
+        "title": "Label Proportions By Region",
+        "type": "object"
+      },
       "exploratory": {
         "const": true,
         "default": true,
@@ -1493,6 +1583,36 @@
               ]
             },
             "title": "Label Proportions",
+            "type": "object"
+          },
+          "label_proportions_by_region": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "propertyNames": {
+                  "enum": [
+                    "confirmed",
+                    "vague",
+                    "absent"
+                  ]
+                },
+                "type": "object"
+              },
+              "propertyNames": {
+                "enum": [
+                  "salary",
+                  "duties",
+                  "tools_or_skills",
+                  "training_or_mentoring",
+                  "probation_terms",
+                  "employment_type"
+                ]
+              },
+              "type": "object"
+            },
+            "title": "Label Proportions By Region",
             "type": "object"
           },
           "exploratory": {

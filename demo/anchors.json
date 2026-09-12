@@ -1,0 +1,31 @@
+{
+  "disclosure": "All three records are synthetic, fictional, and for offline product demonstration only. They are not evidence about real employers or regional labor markets.",
+  "occupation": "생산직(제조 조립원)",
+  "employment_type": "정규직",
+  "anchors": [
+    {
+      "role": "metropolitan_confirmed_salary",
+      "posting_id": "MET-001",
+      "region": "metro",
+      "municipality": "서울특별시",
+      "company_name": "(예시) 가상제조 서울1호(주)",
+      "source_text": "(예시) 가상제조 서울1호(주)에서 생산직(제조 조립원)을 모집합니다. 완성차 부품 조립 및 품질 검사 업무를 담당합니다. 지게차 운전면허 및 PLC 설비 조작 경험자를 우대합니다. 월급 270만원(세전) 지급합니다. 입사 후 2주간 사수와 1:1 현장 OJT를 진행합니다. 수습기간 3개월, 수습기간 중 급여는 본급의 90% 지급합니다. 고용형태는 정규직입니다."
+    },
+    {
+      "role": "jeonbuk_confirmed_salary",
+      "posting_id": "JB-001",
+      "region": "jeonbuk",
+      "municipality": "전주시",
+      "company_name": "(예시) 가상제조 전주1호(주)",
+      "source_text": "(예시) 가상제조 전주1호(주)에서 생산직(제조 조립원)을 모집합니다. 완성차 부품 조립 및 품질 검사 업무를 담당합니다. 지게차 운전면허 소지자 우대하며 관련 경험이 있으면 더욱 좋습니다. 월급 235만원(세전) 지급. 수습기간 3개월 적용하며 자세한 급여 조건은 면접 시 안내합니다. 고용형태는 정규직입니다."
+    },
+    {
+      "role": "jeonbuk_gap_audit",
+      "posting_id": "JB-003",
+      "region": "jeonbuk",
+      "municipality": "전주시",
+      "company_name": "(예시) 가상산업 전주3호",
+      "source_text": "(예시) 가상산업 전주3호에서 생산직(제조 조립원)을 채용합니다. 생산 관련 업무 전반을 수행합니다. 관련 경험자 우대합니다. 채용형태는 면접 후 결정합니다."
+    }
+  ]
+}

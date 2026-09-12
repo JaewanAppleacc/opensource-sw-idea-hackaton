@@ -45,6 +45,8 @@ def build_adjudication_rows(a_records: list[dict], b_records: list[dict]) -> lis
         b = b_by_cell.get((pid, field))
         if a is None or b is None:
             raise ValueError(f"cell {(pid, field)} missing from one of the annotator files")
+        if a.get("synthetic_test_fixture") != b.get("synthetic_test_fixture"):
+            raise ValueError(f"cell {(pid, field)} has conflicting synthetic provenance")
 
         agreement = (
             a.get("status") is not None
@@ -73,6 +75,7 @@ def build_adjudication_rows(a_records: list[dict], b_records: list[dict]) -> lis
                     "auto-filled: A and B agreed" if agreement else None
                 ),
                 "rubric_version": a.get("rubric_version") or b.get("rubric_version"),
+                "synthetic_test_fixture": a.get("synthetic_test_fixture"),
             }
         )
     return rows

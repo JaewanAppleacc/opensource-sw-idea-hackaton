@@ -598,6 +598,36 @@
             "type": "object",
             "title": "Label Proportions"
           },
+          "label_proportions_by_region": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "propertyNames": {
+                  "enum": [
+                    "confirmed",
+                    "vague",
+                    "absent"
+                  ]
+                },
+                "type": "object"
+              },
+              "propertyNames": {
+                "enum": [
+                  "salary",
+                  "duties",
+                  "tools_or_skills",
+                  "training_or_mentoring",
+                  "probation_terms",
+                  "employment_type"
+                ]
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Label Proportions By Region"
+          },
           "exploratory": {
             "type": "boolean",
             "const": true,
@@ -753,6 +783,34 @@
           "employment_type": {
             "type": "string",
             "title": "Employment Type"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name"
+          },
+          "source_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Text",
+            "description": "Posting text when the configured source permits runtime display; may be null."
+          },
+          "is_synthetic": {
+            "type": "boolean",
+            "title": "Is Synthetic",
+            "default": false
           },
           "matching_fields": {
             "items": {

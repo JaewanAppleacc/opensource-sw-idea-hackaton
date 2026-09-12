@@ -1,7 +1,9 @@
 # Backend handoff
 
-Status: **AI/backend track complete** per `TASK_AI_BACKEND.md`. Runs fully
-offline with the deterministic mock provider; no API key required.
+Status: **merged and integration-tested** with the data track. Runs fully
+offline with the deterministic mock provider; no API key required. The
+current frontend contract and demo truth live in `FRONTEND_API_HANDOFF.md`
+and `demo/anchors.json`.
 
 ## Run it
 
@@ -23,8 +25,8 @@ source .venv/bin/activate
 python -m pytest tests/backend -q
 ```
 
-66 tests, all offline (mock provider, bundled fixture dataset). No network
-access or API key required.
+Run the backend and data suites together; the current exact count is recorded
+in the integration commit/CI output. All tests are offline and need no API key.
 
 ## Regenerate the contract
 
@@ -82,9 +84,9 @@ For `"급여: 회사 내규에 따름"`, `salary` comes back `"status": "vague"`
 
 Input: `{"occupation": str, "employment_type?": str, "posting_id?": str}`
 
-Reads the local curated dataset (`JEONBUK_DATASET_PATH`, defaults to this
-track's small synthetic fixture at
-`backend/app/datasets/jeonbuk_fixture.jsonl`). Matches by exact occupation
+Reads the local curated dataset (`JEONBUK_DATASET_PATH`, defaults to the merged
+data-track file at `data/postings/postings.jsonl`, with the backend fixture as
+a fallback only when that file is absent). Matches by exact occupation
 (required) and employment type (optional; ranks matches and reports
 mismatches rather than hiding them). Returns at most 3 candidates, each
 carrying a fixed `description` stating the result comes from a finite
@@ -112,7 +114,7 @@ explicitly.
 ### `GET /data/gap-stats`
 
 Reads only adjudicated human gold labels from `GOLD_LABELS_PATH` (default
-`data/gold/adjudicated_labels.json`, owned by the data track). Response is
+`data/gold/adjudicated_labels.jsonl`, owned by the data track). Response is
 always `{"ready": bool, "stats": ..., "error": ...}`. Until the data track
 publishes that file, this returns `{"ready": false, "error": {"code":
 "data_not_ready", ...}}` -- it never falls back to AI-generated labels.
@@ -150,19 +152,19 @@ place to put it).
 
 ## Deterministic field rules
 
-`backend/app/rules/field_rules.yaml` (+ `field_rules.py`) holds, per field:
+`data/rubric/runtime_rules.yaml` (loaded by `field_rules.py`) holds, per field:
 anchor keywords (for the mock provider), vague markers, relevance keywords,
 and a confirmed-criteria rule (`amount_and_unit` for salary,
 `duration_and_condition` for probation, `specific_keywords` for the rest).
-Override the whole file via `FIELD_RULES_PATH` once the data track ships
-its own rubric-derived version -- no pipeline code changes needed.
+It is version-aligned with `data/rubric/rubric.yaml`. Override the whole file
+via `FIELD_RULES_PATH` without changing pipeline code.
 
 ## Known limitations / assumptions
 
-- **Fixture data only.** `backend/app/datasets/jeonbuk_fixture.jsonl` (5
-  records) is synthetic, written for this track's tests/demo -- not real
-  scraped postings. Swap in the data track's file via
-  `JEONBUK_DATASET_PATH` without touching any code.
+- **Fixture data only.** The merged `data/postings/postings.jsonl` and backend
+  fallback records are synthetic -- not real scraped postings. Every returned
+  match exposes `is_synthetic`; swap in a permitted real data file via
+  `JEONBUK_DATASET_PATH` without touching code.
 - **Rule-based mock provider, not an LLM.** It is deterministic and
   offline by design (per `TASK_AI_BACKEND.md`), but its recall depends on
   the posting following a roughly one-topic-per-line layout with
@@ -171,7 +173,7 @@ its own rubric-derived version -- no pipeline code changes needed.
   live API key in this environment (no key was available here) -- its
   `provider_unavailable` failure path is covered by tests, its happy path
   is not.
-- **`gap-stats` has no gold labels yet.** `data/gold/adjudicated_labels.json`
+- **`gap-stats` has no gold labels yet.** `data/gold/adjudicated_labels.jsonl`
   does not exist in this repo yet (data track's job). The endpoint is
   fully implemented and tested against a synthetic fixture
   (`tests/backend/fixtures/gold_labels_sample.json`); it will pick up the

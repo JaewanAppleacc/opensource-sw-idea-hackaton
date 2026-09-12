@@ -16,6 +16,7 @@ from app.main import app as fastapi_app  # noqa: E402
 from app.rules.field_rules import clear_rules_cache  # noqa: E402
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+BACKEND_DATASET_FIXTURE = BACKEND_ROOT / "app" / "datasets" / "jeonbuk_fixture.jsonl"
 
 
 def _clear_all_caches() -> None:
@@ -25,13 +26,16 @@ def _clear_all_caches() -> None:
 
 
 @pytest.fixture(autouse=True)
-def _reset_caches():
+def _reset_caches(monkeypatch):
     """Every test starts and ends with fresh, env-var-driven caches.
 
     Several modules (settings, dataset loader, rule config) cache on first
     read so the app doesn't re-parse files per-request. Tests that monkeypatch
     the relevant env vars must see those changes take effect immediately.
     """
+    # Unit tests retain the backend track's stable fixture. Integration tests
+    # can explicitly point at the merged data-track corpus.
+    monkeypatch.setenv("JEONBUK_DATASET_PATH", str(BACKEND_DATASET_FIXTURE))
     _clear_all_caches()
     yield
     _clear_all_caches()

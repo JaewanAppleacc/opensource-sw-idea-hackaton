@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Dict, Literal, Optional
 
+from pydantic import Field
+
 from .common import APIError, FieldName, FieldStatus, StrictModel
 
 
@@ -17,6 +19,7 @@ class GapStats(StrictModel):
     filters: GapStatsFilters
     rubric_version: str
     label_proportions: Dict[FieldName, Dict[FieldStatus, float]]
+    label_proportions_by_region: Dict[str, Dict[FieldName, Dict[FieldStatus, float]]] = Field(default_factory=dict)
     exploratory: Literal[True] = True
 
 

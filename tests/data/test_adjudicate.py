@@ -10,6 +10,7 @@ def cell(posting_id, field, status, evidence_text=None, offsets=None):
         "offsets": offsets,
         "reason_code": "x",
         "rubric_version": "1.0.0-draft",
+        "synthetic_test_fixture": False,
     }
 
 
@@ -40,6 +41,13 @@ def test_status_mismatch_is_disagreement():
     b = [cell("JB-001", "salary", "vague", "협의 후 결정", [0, 6])]
     rows = build_adjudication_rows(a, b)
     assert rows[0]["agreement"] is False
+
+
+def test_adjudication_preserves_explicit_non_synthetic_provenance():
+    a = [cell("JB-001", "salary", "absent")]
+    b = [cell("JB-001", "salary", "absent")]
+    rows = build_adjudication_rows(a, b)
+    assert rows[0]["synthetic_test_fixture"] is False
 
 
 def test_percent_agreement_across_multiple_cells():

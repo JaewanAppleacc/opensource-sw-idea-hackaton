@@ -15,6 +15,12 @@ class MatchCandidate(StrictModel):
     municipality: Optional[str] = None
     occupation: str
     employment_type: str
+    company_name: Optional[str] = None
+    source_text: Optional[str] = Field(
+        default=None,
+        description="Posting text when the configured source permits runtime display; may be null.",
+    )
+    is_synthetic: bool = False
     matching_fields: List[str]
     mismatch_fields: List[str]
     description: str = Field(

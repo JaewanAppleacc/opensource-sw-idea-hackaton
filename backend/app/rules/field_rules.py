@@ -16,7 +16,12 @@ from typing import List, Optional, Tuple
 
 import yaml
 
-_DEFAULT_RULES_PATH = Path(__file__).with_name("field_rules.yaml")
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_INTEGRATED_RULES_PATH = _REPO_ROOT / "data" / "rubric" / "runtime_rules.yaml"
+_BACKEND_FALLBACK_RULES_PATH = Path(__file__).with_name("field_rules.yaml")
+_DEFAULT_RULES_PATH = (
+    _INTEGRATED_RULES_PATH if _INTEGRATED_RULES_PATH.exists() else _BACKEND_FALLBACK_RULES_PATH
+)
 
 
 def _rules_path() -> Path:

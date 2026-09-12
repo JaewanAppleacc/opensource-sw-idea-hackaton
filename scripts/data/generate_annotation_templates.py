@@ -30,7 +30,9 @@ FIELDS = [
 ]
 
 
-def blank_row(posting_id: str, field: str, annotator_id: str) -> dict:
+def blank_row(
+    posting_id: str, field: str, annotator_id: str, synthetic_test_fixture: bool
+) -> dict:
     return {
         "posting_id": posting_id,
         "field": field,
@@ -41,24 +43,37 @@ def blank_row(posting_id: str, field: str, annotator_id: str) -> dict:
         "reason_code": None,  # short free-text reason, required once status is filled in
         "disagreement_note": None,  # optional; annotator's own note, not the adjudicator's
         "rubric_version": RUBRIC_VERSION,
+        # Explicit provenance is carried through adjudication. The backend
+        # refuses aggregate stats unless every gold row says false.
+        "synthetic_test_fixture": synthetic_test_fixture,
     }
 
 
 def main() -> None:
-    posting_ids = []
+    postings = []
     with POSTINGS_PATH.open(encoding="utf-8") as f:
         for line in f:
             if line.strip():
-                posting_ids.append(json.loads(line)["posting_id"])
+                postings.append(json.loads(line))
 
     for annotator_id, filename in [("A", "annotator_A_template.jsonl"), ("B", "annotator_B_template.jsonl")]:
         out_path = REPO_ROOT / "data" / "annotation" / filename
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with out_path.open("w", encoding="utf-8") as f:
-            for pid in posting_ids:
+            for posting in postings:
                 for field in FIELDS:
-                    f.write(json.dumps(blank_row(pid, field, annotator_id), ensure_ascii=False) + "\n")
-        print(f"Wrote {len(posting_ids) * len(FIELDS)} blank rows to {out_path}")
+                    is_synthetic = (
+                        posting.get("synthetic_test_fixture") is True
+                        or posting.get("source_name") == "synthetic_fixture_v1"
+                    )
+                    f.write(
+                        json.dumps(
+                            blank_row(posting["posting_id"], field, annotator_id, is_synthetic),
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    )
+        print(f"Wrote {len(postings) * len(FIELDS)} blank rows to {out_path}")
 
 
 if __name__ == "__main__":
