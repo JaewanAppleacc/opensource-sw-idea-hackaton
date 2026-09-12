@@ -7,10 +7,10 @@ import type { ApiErrorCode, FieldName, FieldStatus, VerificationChannel } from '
 
 export const FIELD_LABELS: Record<FieldName, string> = {
   salary: '급여',
-  duties: '업무',
-  tools_or_skills: '도구·기술',
+  duties: '담당 업무',
+  tools_or_skills: '필요 기술·도구·자격',
   training_or_mentoring: '교육·멘토링',
-  probation_terms: '수습조건',
+  probation_terms: '수습기간과 수습 중 급여',
   employment_type: '고용형태',
 }
 
@@ -23,10 +23,12 @@ export const FIELD_ORDER: FieldName[] = [
   'employment_type',
 ]
 
+// Display names only -- the underlying FieldStatus enum values
+// ('confirmed' | 'vague' | 'absent') are never renamed. See TASK section 6.
 export const STATUS_LABELS: Record<FieldStatus, string> = {
-  confirmed: '구체적으로 확인됨',
-  vague: '언급됐지만 판단하기 어려움',
-  absent: '공고에서 확인되지 않음',
+  confirmed: '확인 가능',
+  vague: '추가 확인 필요',
+  absent: '공고에서 확인 불가',
 }
 
 export const CHANNEL_LABELS: Record<VerificationChannel, string> = {

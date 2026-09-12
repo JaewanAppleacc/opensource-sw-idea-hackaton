@@ -84,15 +84,15 @@ function ResultCard({ result }: { result: FinancialComparison }) {
             <p className="font-semibold text-ink-900">{option.label}</p>
             <dl className="mt-2 space-y-1 text-sm text-ink-700">
               <div className="flex justify-between">
-                <dt>월 가용자금</dt>
+                <dt>월 잉여자금</dt>
                 <dd>{formatKrw(option.monthly_surplus)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt>1년 가용자금</dt>
+                <dt>1년 후 유동자금</dt>
                 <dd>{formatKrw(option.one_year_liquid_cash)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt>3년 가용자금 (가정 기반)</dt>
+                <dt>3년 후 유동자금 (가정 기반)</dt>
                 <dd>{formatKrw(option.three_year_liquid_cash)}</dd>
               </div>
               <div className="flex justify-between border-t border-ink-border pt-1 text-ink-500">
@@ -100,6 +100,12 @@ function ResultCard({ result }: { result: FinancialComparison }) {
                 <dd>{formatKrw(option.deposit_locked)}</dd>
               </div>
             </dl>
+            <p className="mt-2 border-t border-ink-border pt-2 text-xs text-ink-500">
+              보증금을 제외한 가용자금: 1년 후 {formatKrw(option.one_year_liquid_cash)}, 3년 후{' '}
+              {formatKrw(option.three_year_liquid_cash)} (총자산(보증금 포함)은 1년 후{' '}
+              {formatKrw(option.one_year_total_with_deposit)}, 3년 후 {formatKrw(option.three_year_total_with_deposit)}
+              )
+            </p>
           </div>
         ))}
       </div>
