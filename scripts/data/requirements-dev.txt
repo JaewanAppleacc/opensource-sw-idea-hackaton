@@ -1,0 +1,6 @@
+# Dev/test dependencies for the data/evaluation track only.
+# The scripts themselves (validate_dataset.py, adjudicate.py, generate_splits.py,
+# aggregate_stats.py, evaluate_predictions.py, generate_report.py) use only the
+# Python standard library, by design, so this track has no runtime dependency
+# on backend/** or contracts/**.
+pytest>=7.0

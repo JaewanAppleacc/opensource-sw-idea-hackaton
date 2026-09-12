@@ -1,0 +1,137 @@
+# Six-field audit rubric — machine-readable version.
+# Human-readable explanation with more examples: data/rubric/rubric.md
+#
+# Controlling principle (do not lose this while editing):
+#   "Distinguish wording being present from decision-useful information
+#    being present."
+#
+# Allowed statuses ONLY: confirmed, vague, absent.
+# Do NOT add `external_verified` or any other status here.
+
+rubric_version: "1.0.0-draft"
+occupation_scope: "생산직(제조 조립원), 정규직 — see data/occupation_selection.md"
+allowed_statuses: [confirmed, vague, absent]
+
+fields:
+  salary:
+    definition: "Take-home or gross pay the applicant would receive."
+    confirmed:
+      criteria: >
+        States a specific amount or numeric range plus a pay-period/unit
+        (e.g., 월급, 연봉, 시급) sufficient for the applicant to estimate
+        expected pay.
+      deterministic_checks:
+        - "evidence_text contains at least one digit"
+        - "evidence_text contains a unit token from: [원, 만원, 연봉, 월급, 시급, 급여]"
+      positive_examples:
+        - "월급 260만원(세전) 지급"
+        - "연봉 3,200만원 수준"
+    vague:
+      criteria: >
+        Pay is mentioned as existing but no specific number is reachable from
+        the text (e.g., refers to internal pay scale, negotiation, or
+        experience-based tiers without stating them).
+      boundary_examples:
+        - "회사 내규에 따라 지급 (내규 자체는 미기재)"
+        - "경력에 따라 협의 후 결정"
+    absent:
+      criteria: "No wording about compensation anywhere in the posting."
+
+  duties:
+    definition: "What the person will actually do day to day."
+    confirmed:
+      criteria: >
+        Names concrete tasks or a work process specific enough to picture the
+        job (e.g., a named process step, product, or line).
+      deterministic_checks:
+        - "evidence_text length >= 8 characters (rules out a single generic noun)"
+      positive_examples:
+        - "완성차 부품 조립 및 품질 검사 업무를 담당합니다."
+        - "사출 성형기 운영 및 제품 포장 업무를 수행합니다."
+    vague:
+      criteria: "States a job family/category without a concrete task."
+      boundary_examples:
+        - "생산 관련 업무 전반을 수행합니다."
+    absent:
+      criteria: "No description of the work itself."
+
+  tools_or_skills:
+    definition: >
+      Equipment, certifications, or technical skills the applicant needs or
+      will use.
+    occupation_mapping: >
+      For 생산직(제조 조립원): counts as this field when the posting names a
+      license/certification (지게차 운전면허), a machine/system
+      (PLC, 사출 성형기, CNC), a measuring tool (캘리퍼스, 마이크로미터), or an
+      explicit skill (도면 해독). Generic phrases like "성실한 분", "책임감"
+      are personality traits, not tools_or_skills, and must not be coded
+      under this field.
+    confirmed:
+      criteria: "Names a specific tool, machine, certification, or skill."
+      positive_examples:
+        - "지게차 운전면허 및 PLC 설비 조작 경험 우대"
+        - "도면 해독 능력 및 캘리퍼스 사용 가능자 우대"
+    vague:
+      criteria: "References experience/skill in general terms with no named tool or certification."
+      boundary_examples:
+        - "관련 경험자 우대"
+    absent:
+      criteria: "No mention of any tool, certification, or skill requirement."
+
+  training_or_mentoring:
+    definition: "Onboarding, OJT, mentoring, or ongoing training the employer provides."
+    occupation_mapping: >
+      For this occupation, counts when the posting describes OJT with a named
+      duration or mentor structure (사수, 1:1 교육), or recurring
+      safety/skills training. General culture language ("성장하는 회사") does
+      not count.
+    confirmed:
+      criteria: "Names a concrete training/mentoring structure with duration or cadence."
+      positive_examples:
+        - "입사 후 2주간 사수와 1:1 현장 OJT 진행"
+        - "매월 1회 정기 안전교육 및 사내 직무교육 제공"
+    vague:
+      criteria: "Claims training exists without describing its structure."
+      boundary_examples:
+        - "체계적인 교육 시스템 운영"
+    absent:
+      criteria: "No mention of training or mentoring."
+
+  probation_terms:
+    definition: "Probation/trial period length and its pay or condition impact."
+    confirmed:
+      criteria: >
+        States BOTH a probation duration AND a pay/condition detail during
+        probation (e.g., percentage of full pay, or explicitly "동일 급여
+        지급"). Duration alone is NOT sufficient for confirmed.
+      deterministic_checks:
+        - "evidence_text contains a duration token matching a pattern like '개월' or '주'"
+        - "evidence_text contains a pay/condition token from: [%, 급여, 지급, 동일]"
+      positive_examples:
+        - "수습기간 3개월, 수습기간 중 급여는 본급의 90% 지급"
+        - "수습 3개월 적용, 수습기간 동안 동일 급여 지급"
+    vague:
+      criteria: "States a probation duration only, or mentions probation exists without duration or pay detail."
+      boundary_examples:
+        - "수습기간 있음 (기간/급여 조건 미기재)"
+    absent:
+      criteria: "No mention of probation."
+
+  employment_type:
+    definition: "The contractual employment category being offered."
+    confirmed:
+      criteria: "Names a specific employment type (정규직, 계약직(기간), 인턴 등)."
+      positive_examples:
+        - "정규직 채용"
+        - "계약직(1년, 이후 정규직 전환 가능)"
+    vague:
+      criteria: "Says employment type will be decided later or depends on the interview, without naming an option."
+      boundary_examples:
+        - "채용형태는 면접 후 결정"
+    absent:
+      criteria: "No mention of employment type."
+
+notes:
+  - "external_verified is explicitly NOT a posting-field status. External facts (e.g. National Pension contribution counts) are separate context and must never upgrade a field's status."
+  - "System/process failures (analysis_failed, invalid_input, provider_unavailable, schema_validation_failed) are not posting statuses and must never appear in the `status` field of an audited field."
+  - "Evidence for confirmed/vague must be an exact substring of the source posting text at the recorded offsets. absent fields must have null evidence."

@@ -1,0 +1,82 @@
+{
+  "rubric_version": "1.0.0-draft",
+  "is_gold_source": false,
+  "gold_status_note": "is_gold_source=false: --gold is a NON-GOLD synthetic/demo adjudicated file. This report exists only to prove the evaluation script runs correctly end to end and must not be cited as a model-performance result.",
+  "sample_size": {
+    "predictions_received": 25,
+    "schema_failures": 1,
+    "unsupported_or_fabricated_evidence": 1,
+    "duplicate_predictions_ignored": 1,
+    "no_gold_available_for_cell": 0,
+    "evaluated_cells": 22
+  },
+  "primary_result_raw_counts": {
+    "correct": 19,
+    "incorrect": 3,
+    "overall_accuracy": 0.8636
+  },
+  "confusion_matrix_gold_rows_pred_cols": {
+    "absent": {
+      "absent": 9,
+      "confirmed": 0,
+      "vague": 0
+    },
+    "confirmed": {
+      "absent": 1,
+      "confirmed": 5,
+      "vague": 0
+    },
+    "vague": {
+      "absent": 0,
+      "confirmed": 2,
+      "vague": 5
+    }
+  },
+  "macro_metrics_secondary": {
+    "caveat": "n=22 evaluated cells. Macro precision/recall/F1 on a sample this size is NOT a defensible primary result (see TASK_DATA_EVALUATION.md Phase 5) and is reported here only as a secondary, illustrative figure.",
+    "per_class": {
+      "absent": {
+        "precision": 0.9,
+        "recall": 1.0,
+        "f1": 0.9474,
+        "support": 9
+      },
+      "confirmed": {
+        "precision": 0.7143,
+        "recall": 0.8333,
+        "f1": 0.7692,
+        "support": 6
+      },
+      "vague": {
+        "precision": 1.0,
+        "recall": 0.7143,
+        "f1": 0.8333,
+        "support": 7
+      }
+    }
+  },
+  "schema_failures_detail": [
+    {
+      "cell": [
+        "JB-008",
+        "employment_type"
+      ],
+      "error": "status 'employment_confirmed' not in ['absent', 'confirmed', 'vague']"
+    }
+  ],
+  "unsupported_evidence_detail": [
+    {
+      "cell": [
+        "JB-007",
+        "tools_or_skills"
+      ],
+      "predicted_status": "confirmed",
+      "evidence_text": "지게차 면허 우대",
+      "offsets": [
+        0,
+        10
+      ]
+    }
+  ],
+  "disclaimer": "exploratory sample; not population-generalizable"
+}
