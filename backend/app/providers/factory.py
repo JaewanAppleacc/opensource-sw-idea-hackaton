@@ -11,4 +11,8 @@ def get_provider() -> ExtractionProvider:
         from .anthropic_provider import AnthropicExtractionProvider
 
         return AnthropicExtractionProvider(model=settings.anthropic_model)
+    if settings.llm_provider == "nvidia":
+        from .nvidia_provider import NvidiaExtractionProvider
+
+        return NvidiaExtractionProvider(model=settings.nvidia_model)
     return MockExtractionProvider()

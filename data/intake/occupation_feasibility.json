@@ -1,0 +1,7 @@
+{
+  "measured_date": "2026-09-12",
+  "total_real_postings_ingested": 0,
+  "candidates": [],
+  "overall_status": "INSUFFICIENT_SAMPLE",
+  "note": "meets_min_10_10 / meets_target_20_20 are raw-count checks only. Per TASK_REAL_DATA_ACQUISITION.md Phase 2, an occupation may only be finalized once a human has also confirmed tools_or_skills/duties boundaries are judgeable for it (human_boundary_review_completed)."
+}

@@ -16,6 +16,7 @@ from pydantic import BaseModel
 class Settings(BaseModel):
     llm_provider: str = "mock"
     anthropic_model: str = "claude-sonnet-5"
+    nvidia_model: str = "nvidia/llama-3.1-nemotron-70b-instruct"
     rubric_version: str = "v1"
 
 
@@ -24,6 +25,7 @@ def get_settings() -> Settings:
     return Settings(
         llm_provider=os.environ.get("LLM_PROVIDER", "mock"),
         anthropic_model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5"),
+        nvidia_model=os.environ.get("NVIDIA_MODEL", "nvidia/llama-3.1-nemotron-70b-instruct"),
         rubric_version=os.environ.get("RUBRIC_VERSION", "v1"),
     )
 

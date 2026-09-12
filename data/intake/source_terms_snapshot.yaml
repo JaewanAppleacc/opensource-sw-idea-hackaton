@@ -1,0 +1,65 @@
+# Source terms snapshot (Parallel task D1, TASK_REAL_DATA_ACQUISITION.md
+# section "0. 접근 가능성 확인" / deliverable #2).
+#
+# Re-confirmed as of the date below by fetching the public pages named. Not
+# a claim about terms visible only after login — those remain UNCONFIRMED
+# and are marked as such. See docs/acquisition/WORK24_API_NOTES.md for the
+# full research trail and docs/acquisition/MANUAL_INTAKE_GUIDE.md for the
+# manual-intake protocol.
+
+snapshot_date: "2026-09-12"
+
+sources:
+  - source_name: "고용24/워크넷 채용정보 Open API"
+    operating_org: "한국고용정보원 (Korea Employment Information Service), 고용24 (work24.go.kr)"
+    checked_urls:
+      - "https://www.data.go.kr/data/3038225/openapi.do"
+      - "http://openapi.work.go.kr/opiMain.do"
+      - "https://www.work24.go.kr/cm/e/a/0110/selectOpenApiIntro.do"
+      - "https://www.work24.go.kr/cm/e/a/0110/selectOpenApiSvcInfo.do?fullApiSvcId=000000000000000000000000000000"
+      - "https://www.work24.go.kr/cm/e/a/0110/selectOpenApiSvcInfo.do?fullApiSvcId=000000000000000000000000000000%5E000000000000000000000000000001%5E000000000000000000000000000003"
+    auth_method: "Work24 인증키 via a human-completed service application; exact eligibility/approval status must be confirmed in the applicant account."
+    approval_status: "NOT APPROVED — no account/key exists for this project as of this snapshot."
+    call_limits: "UNCONFIRMED — call/rate limits are shown only after an approved key is issued; not guessed here."
+    region_occupation_employment_fields: "Public list documentation confirms region and occupation parameters. Employment-type code semantics and the project's complete filter set still require live verification."
+    full_text_or_detail_availability: "CONFIRMED IN SPEC — the public detail documentation includes jobCont and other structured fields; live XML nesting still needs validation with an issued key."
+    storage_processing_redistribution_rights:
+      license_quoted: "Official Work24 detail page requires source attribution/linking and states that unauthorized reproduction and distribution are prohibited."
+      interpretation: "Do not publish full posting text by default. Re-read the approved-use terms and preserve required Work24 attribution/linking."
+      redistribution_verdict: "NO by default pending explicit permission in the issued service terms."
+    important_note: >
+      As of this snapshot, the legacy WorkNet Open API (openapi.work.go.kr)
+      has been discontinued and merged into 고용24 (Work24). The successor's
+      public pages document list/detail endpoints, core parameters, XML, and
+      detail fields. The remaining blocker is the key plus live adapter validation.
+    status: "blocked_no_credentials"
+
+  - source_name: "사람인 / 잡코리아 / 잡플래닛 (민간 채용 플랫폼)"
+    operating_org: "Private companies"
+    checked_urls: []
+    auth_method: "n/a — excluded by policy, not re-checked technically."
+    approval_status: "n/a"
+    call_limits: "n/a"
+    region_occupation_employment_fields: "n/a"
+    full_text_or_detail_availability: "n/a"
+    storage_processing_redistribution_rights:
+      license_quoted: null
+      interpretation: "Automated collection from these platforms is disallowed by CLAUDE.md / TASK_REAL_DATA_ACQUISITION.md regardless of technical feasibility."
+      redistribution_verdict: "Excluded by policy."
+    important_note: "Not queried, not scraped, per project rules."
+    status: "excluded_by_policy"
+
+  - source_name: "User-provided postings — manual intake"
+    operating_org: "n/a — team member acting as the rights-holder or fair-use citer for a specific posting"
+    checked_urls: []
+    auth_method: "n/a — no API; a human pastes text they have personally checked they can share, using docs/acquisition/MANUAL_INTAKE_GUIDE.md."
+    approval_status: "Per-record, via the required redistribution_permission field (yes/no/unknown)."
+    call_limits: "n/a"
+    region_occupation_employment_fields: "Recorded per-record from the human-supplied header (region_group, occupation, employment_type)."
+    full_text_or_detail_availability: "Full text is supplied directly by the human; always required, never summarized."
+    storage_processing_redistribution_rights:
+      license_quoted: null
+      interpretation: "Case-by-case, decided by the supplying team member per posting via redistribution_permission. 'unknown' is the safe default and keeps full_text out of the public JSONL (data/private/intake_raw/ only)."
+      redistribution_verdict: "Per-record; 0 records ingested as of this snapshot."
+    important_note: "This is the currently-active acquisition path (team decision, 2026-09-12) given API key-issuance friction. See REAL_DATA_ACQUISITION_HANDOFF.md for the next required human action."
+    status: "available_but_empty"
