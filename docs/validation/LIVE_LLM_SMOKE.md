@@ -176,6 +176,43 @@ it only on success). `backend/app/providers/nvidia_provider.py` remains as
 committed: functional against a model that supports fast forced-tool-call
 responses, not yet demonstrated to work against `openai/gpt-oss-20b`.
 
+## Phase C (alternate, attempt 2) — NVIDIA moonshotai/kimi-k3 limited check
+
+Per explicit, scoped user approval: a second, tightly-bounded NVIDIA model
+check, limited in advance to at most 2 live calls, 60s timeout each, no
+exploration of other models or parameters on failure, and no change to
+`nvidia_provider.py` or the API contract for this check.
+
+- Model: `moonshotai/kimi-k3` (the only model tried in this attempt).
+- `NVIDIA_API_KEY`/`NVIDIA_API` read only from the local `.env` file into a
+  shell variable via `grep`/`cut`; never printed, echoed, or logged at any
+  point in this check.
+- **Call 1 of 2 (simple access/latency probe):** a plain, tool-free chat
+  completion (`"Say OK"`, `max_tokens: 10`, `temperature: 0`,
+  `reasoning_effort: "low"`), `--max-time 60`.
+  - **Result: 60-second timeout, zero bytes returned** (`HTTP_STATUS:000`,
+    no response body at all -- not even a partial one).
+- Per instruction, a failure at this step stops the check immediately: no
+  parameter exploration, and **no Call 2** (the six-field extraction call,
+  which was conditional on Call 1 succeeding, was never made). Total live
+  calls made: **1 of the 2 allowed.**
+
+### Result: **`timeout`**
+
+- Failure category (per the three allowed): **timeout** -- not an API
+  error (no HTTP status was ever returned to classify as one) and not a
+  schema failure (no response body existed to validate).
+- No code change was made to `backend/app/providers/nvidia_provider.py`,
+  `factory.py`, or any API contract file for this check, per instruction.
+  `moonshotai/kimi-k3` was not set as a default model anywhere.
+- No secret was displayed, logged, or written to any file during this
+  check.
+- This is a distinct result from the `openai/gpt-oss-20b` attempts above:
+  `kimi-k3` did not even respond to a trivial, tool-free prompt within the
+  budget, whereas `gpt-oss-20b` answered a trivial prompt in under a
+  second and only failed on the forced-schema/JSON-only attempts. Do not
+  read this as evidence about `gpt-oss-20b`, or vice versa.
+
 ## Next step to complete Phase C
 
 A human needs to add credit / upgrade the plan on the Anthropic account
