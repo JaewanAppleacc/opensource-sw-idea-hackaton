@@ -1,0 +1,25 @@
+{"posting_id": "JB-007", "field": "salary", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "JB-007", "field": "duties", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "JB-007", "field": "tools_or_skills", "status": "confirmed", "evidence_text": "지게차 면허 우대", "offsets": [0, 10]}
+{"posting_id": "JB-007", "field": "training_or_mentoring", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "JB-007", "field": "probation_terms", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "JB-007", "field": "employment_type", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "JB-008", "field": "salary", "status": "vague", "evidence_text": "급여는 경력에 따라 협의 후 결정합니다.", "offsets": [75, 97]}
+{"posting_id": "JB-008", "field": "duties", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "JB-008", "field": "tools_or_skills", "status": "confirmed", "evidence_text": "관련 경험자 우대합니다.", "offsets": [61, 74]}
+{"posting_id": "JB-008", "field": "training_or_mentoring", "status": "vague", "evidence_text": "체계적인 교육 시스템을 운영하고 있습니다.", "offsets": [98, 121]}
+{"posting_id": "JB-008", "field": "probation_terms", "status": "vague", "evidence_text": "수습기간 있음(세부 조건은 면접 시 안내).", "offsets": [122, 146]}
+{"posting_id": "JB-008", "field": "employment_type", "status": "employment_confirmed", "evidence_text": "고용형태는 정규직입니다.", "offsets": [147, 160]}
+{"posting_id": "MET-007", "field": "duties", "status": "confirmed", "evidence_text": "완성차 부품 조립 및 품질 검사 업무를 담당합니다.", "offsets": [40, 68]}
+{"posting_id": "MET-007", "field": "employment_type", "status": "confirmed", "evidence_text": "고용형태는 정규직입니다.", "offsets": [177, 190]}
+{"posting_id": "MET-007", "field": "probation_terms", "status": "confirmed", "evidence_text": "수습기간 있음(세부 조건은 면접 시 안내).", "offsets": [152, 176]}
+{"posting_id": "MET-007", "field": "salary", "status": "confirmed", "evidence_text": "월급 258만원(세전) 지급합니다.", "offsets": [100, 119]}
+{"posting_id": "MET-007", "field": "tools_or_skills", "status": "confirmed", "evidence_text": "지게차 운전면허 및 캘리퍼스 사용 가능자를 우대합니다.", "offsets": [69, 99]}
+{"posting_id": "MET-007", "field": "training_or_mentoring", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "MET-008", "field": "duties", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "MET-008", "field": "employment_type", "status": "confirmed", "evidence_text": "고용형태는 정규직입니다.", "offsets": [87, 100]}
+{"posting_id": "MET-008", "field": "probation_terms", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "MET-008", "field": "probation_terms", "status": "absent", "evidence_text": null, "offsets": null}
+{"posting_id": "MET-008", "field": "salary", "status": "vague", "evidence_text": "급여는 회사 내규에 따라 지급합니다.", "offsets": [66, 86]}
+{"posting_id": "MET-008", "field": "tools_or_skills", "status": "vague", "evidence_text": "관련 경험자를 우대합니다.", "offsets": [51, 65]}
+{"posting_id": "MET-008", "field": "training_or_mentoring", "status": "absent", "evidence_text": null, "offsets": null}

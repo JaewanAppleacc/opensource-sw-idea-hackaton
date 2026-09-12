@@ -1,0 +1,9 @@
+{
+  "split": "holdout",
+  "posting_ids": [
+    "JB-007",
+    "JB-008",
+    "MET-007",
+    "MET-008"
+  ]
+}

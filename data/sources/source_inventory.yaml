@@ -1,0 +1,93 @@
+# Source feasibility inventory — Phase 1
+#
+# Purpose: record every candidate source considered for Jeonbuk / metropolitan
+# job-posting data, whether it is actually usable inside this hackathon
+# workspace, and exactly what blocks it. Nothing in this file is a claim that
+# data was collected — see `status` and `blockers` per source.
+#
+# Checked: 2026-09-12 (see docs/data/METHODOLOGY.md for the research trail).
+
+inventory_version: "1.0.0"
+checked_date: "2026-09-12"
+
+sources:
+  - source_name: "고용24 / 워크넷 채용정보 Open API (한국고용정보원, data.go.kr)"
+    access_method: "REST Open API via data.go.kr; requires a 인증키 (service key) issued after data.go.kr account signup and per-API 활용신청 (usage application)."
+    license_terms_status: >
+      Public-data Open API distributed under 공공데이터포털 terms. Historically
+      permits reuse of the structured fields returned by the API (title,
+      occupation code, region code, employment type, salary band, dates,
+      source URL) for stated non-commercial/hackathon purposes, subject to the
+      exact terms shown on the per-API application page at the time of
+      approval. Full free-text postings are not guaranteed to be included in
+      the API response; some fields may be summarized rather than the
+      original wording. TERMS MUST BE RE-READ at the moment a real key is
+      issued, before any redistribution decision is made.
+    date_range: "Rolling/current postings only; no fixed historical date range confirmed without an approved key."
+    jeonbuk_count_by_occupation: "UNKNOWN — cannot query without an approved 인증키. Not estimated or invented."
+    metro_count: "UNKNOWN — same blocker."
+    employment_type_availability: "Documented in the API's 공통코드 (common code) reference (data.go.kr, 한국고용정보원_워크넷 공통코드), which is itself queryable without blocking on the key for postings."
+    full_text_redistributable: "UNCONFIRMED — must be reconfirmed against the license text shown at key-issuance time, and re-checked per field before any public-repo redistribution."
+    blockers:
+      - "No data.go.kr account / service key available inside this agent session. Key issuance requires a human to sign up, agree to terms, and submit a usage-purpose application through the web UI — this cannot be completed non-interactively."
+      - "Approval for some data.go.kr APIs is manual and can take 1-2 business days."
+    status: "blocked_no_credentials"
+
+  - source_name: "사람인 / 잡코리아 / 잡플래닛 (민간 채용 플랫폼)"
+    access_method: "Web UI; some platforms have historically offered partner-only or deprecated public APIs, not open self-serve APIs as of this check."
+    license_terms_status: "Terms of service for these platforms restrict automated scraping and bulk redistribution of posting content. Treated as PRIVATE recruitment platforms per project rules."
+    date_range: "n/a"
+    jeonbuk_count_by_occupation: "n/a"
+    metro_count: "n/a"
+    employment_type_availability: "n/a"
+    full_text_redistributable: "No — scraping is explicitly disallowed by CLAUDE.md project rules regardless of technical feasibility."
+    blockers:
+      - "CLAUDE.md / TASK_DATA_EVALUATION.md instruct: 'Do not scrape private recruitment platforms.' This source is excluded on policy grounds, not just access grounds."
+    status: "excluded_by_policy"
+
+  - source_name: "User-provided postings (job-seeker or employer supplied text, pasted or uploaded by the hackathon team)"
+    access_method: "Manual collection: a team member or user pastes/uploads real posting text they are personally authorized to share (e.g. a posting they are the applicant/recruiter for, or a public posting they copy under fair-use citation with a source URL recorded)."
+    license_terms_status: "Case-by-case; the person supplying the text is responsible for confirming they may share it. Each record must carry a source_id_url and explicit note on redistribution rights."
+    date_range: "Depends on when supplied."
+    jeonbuk_count_by_occupation: "0 supplied as of this check."
+    metro_count: "0 supplied as of this check."
+    employment_type_availability: "n/a — none supplied yet."
+    full_text_redistributable: "Case-by-case, must be confirmed per posting before it leaves the internal/local layer."
+    blockers:
+      - "No user-provided postings were supplied during this work session."
+    status: "available_but_empty"
+
+  - source_name: "Synthetic fixtures authored for this repository"
+    access_method: "Hand-authored by the data/evaluation track, generated reproducibly by scripts/data/build_synthetic_fixtures.py."
+    license_terms_status: "Self-authored fictional text. No license restriction; fully redistributable in the public repository layer."
+    date_range: "n/a (fictional; fixture_build_date recorded per record instead of a real collection date)."
+    jeonbuk_count_by_occupation: "10 fictional Jeonbuk postings + 1 intentionally-unmatched Jeonbuk posting, occupation '생산직(제조 조립원)'."
+    metro_count: "10 fictional metropolitan postings + 1 intentionally-unmatched metropolitan posting, same occupation."
+    employment_type_availability: "정규직 for all matched pairs; the two unmatched records intentionally differ (하나는 계약직) to exercise the unmatched-flag path."
+    full_text_redistributable: "Yes — synthetic, self-authored."
+    blockers: []
+    status: "used_for_pipeline_demo_only"
+    important_caveat: >
+      This source exists ONLY to prove the rubric, annotation, validation,
+      splitting, statistics, and evaluation code paths run correctly
+      end-to-end. It is NOT a substitute for the real 10 Jeonbuk + 10
+      metropolitan postings required by Phase 1, and no exploratory or model
+      claim in this repository is based on it being real-world data. See
+      DATA_HANDOFF.md, "Remaining manual steps".
+
+occupation_feasibility_decision:
+  chosen_occupation: "생산직(제조 조립원) — production/assembly line worker, 정규직 (regular/full-time)"
+  status: "PROVISIONAL — selected for pipeline design only; not yet confirmed against a real 10:10 source"
+  see: "data/occupation_selection.md"
+
+overall_conclusion: >
+  As of 2026-09-12, no real Jeonbuk/metropolitan postings have been obtained.
+  The only technically-plausible, policy-compliant public source identified
+  (고용24/워크넷 Open API on data.go.kr) requires a human-completed credential
+  application that this agent session cannot perform. The data/evaluation
+  track therefore proceeds by (1) building the full rubric, schema,
+  annotation, validation, split, statistics, and evaluation pipeline against
+  clearly-labeled synthetic fixtures, and (2) documenting real data
+  acquisition as the first remaining manual step before any "gold" or
+  population claim can be made. No postings or statistics have been invented
+  and presented as real.

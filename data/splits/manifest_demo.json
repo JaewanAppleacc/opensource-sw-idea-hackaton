@@ -1,0 +1,42 @@
+{
+  "generated_at_utc": "2026-09-12T09:39:42.734479+00:00",
+  "rubric_version": "1.0.0-draft",
+  "is_gold": false,
+  "source_adjudicated_file": "data/demo_synthetic_annotations/adjudicated_demo.jsonl",
+  "total_postings": 22,
+  "dev_posting_ids": [
+    "JB-001",
+    "JB-002",
+    "JB-003",
+    "JB-004",
+    "JB-005",
+    "JB-006",
+    "JB-009",
+    "JB-010",
+    "JB-011",
+    "MET-001",
+    "MET-002",
+    "MET-003",
+    "MET-004",
+    "MET-005",
+    "MET-006",
+    "MET-009",
+    "MET-010",
+    "MET-011"
+  ],
+  "holdout_posting_ids": [
+    "JB-007",
+    "JB-008",
+    "MET-007",
+    "MET-008"
+  ],
+  "holdout_fraction_actual": 0.18181818181818182,
+  "holdout_regions_present": [
+    "jeonbuk",
+    "metro"
+  ],
+  "dev_checksum_sha256": "3d0ac533f95fdb2b6c1eb92600d37f6857b063e037b0afda09ba19362765d92d",
+  "holdout_checksum_sha256": "846463f55199bf5b7eebf4d48e9fd6fb4efbe05905bfab4ce5b37f633f35e7e1",
+  "read_only_convention": "The holdout split above must not be inspected or used for prompt/rubric tuning after this manifest is generated. Treat holdout_split*.json as read-only by convention; re-generating it after tuning defeats its purpose.",
+  "gold_status_note": "This manifest is a GOLD split only if is_gold=true, which requires the source adjudicated file to come from two independent completed human annotation passes. See DATA_HANDOFF.md for current status."
+}

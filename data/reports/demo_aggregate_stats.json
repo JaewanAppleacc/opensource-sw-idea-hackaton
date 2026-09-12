@@ -1,0 +1,485 @@
+{
+  "sample_size": 22,
+  "posting_count_by_region": {
+    "jeonbuk": 11,
+    "metro": 11
+  },
+  "cell_count": 132,
+  "data_source": "synthetic_fixture_v1 (see data/sources/source_inventory.yaml)",
+  "collection_period": "n/a (synthetic fixtures; no real collection period)",
+  "occupation": [
+    "생산직(제조 조립원)"
+  ],
+  "employment_type": [
+    "계약직",
+    "정규직"
+  ],
+  "rubric_version": "1.0.0-draft",
+  "is_gold": false,
+  "status_proportions_by_region_and_field": {
+    "jeonbuk": {
+      "duties": {
+        "confirmed": 0.6364,
+        "vague": 0.1818,
+        "absent": 0.1818,
+        "_n": 11
+      },
+      "employment_type": {
+        "confirmed": 0.7273,
+        "vague": 0.1818,
+        "absent": 0.0909,
+        "_n": 11
+      },
+      "probation_terms": {
+        "confirmed": 0.1818,
+        "vague": 0.3636,
+        "absent": 0.4545,
+        "_n": 11
+      },
+      "salary": {
+        "confirmed": 0.4545,
+        "vague": 0.3636,
+        "absent": 0.1818,
+        "_n": 11
+      },
+      "tools_or_skills": {
+        "confirmed": 0.3636,
+        "vague": 0.2727,
+        "absent": 0.3636,
+        "_n": 11
+      },
+      "training_or_mentoring": {
+        "confirmed": 0.2727,
+        "vague": 0.0909,
+        "absent": 0.6364,
+        "_n": 11
+      }
+    },
+    "metro": {
+      "duties": {
+        "confirmed": 0.8182,
+        "vague": 0.0909,
+        "absent": 0.0909,
+        "_n": 11
+      },
+      "employment_type": {
+        "confirmed": 0.9091,
+        "vague": 0.0909,
+        "absent": 0.0,
+        "_n": 11
+      },
+      "probation_terms": {
+        "confirmed": 0.6364,
+        "vague": 0.1818,
+        "absent": 0.1818,
+        "_n": 11
+      },
+      "salary": {
+        "confirmed": 0.8182,
+        "vague": 0.1818,
+        "absent": 0.0,
+        "_n": 11
+      },
+      "tools_or_skills": {
+        "confirmed": 0.5455,
+        "vague": 0.2727,
+        "absent": 0.1818,
+        "_n": 11
+      },
+      "training_or_mentoring": {
+        "confirmed": 0.5455,
+        "vague": 0.1818,
+        "absent": 0.2727,
+        "_n": 11
+      }
+    }
+  },
+  "matched_pair_descriptive_differences": {
+    "per_field_status_differs_rate": {
+      "salary": 0.6,
+      "duties": 0.4,
+      "tools_or_skills": 0.7,
+      "training_or_mentoring": 0.8,
+      "probation_terms": 0.9,
+      "employment_type": 0.2
+    },
+    "per_field_pairs_compared": {
+      "salary": 10,
+      "duties": 10,
+      "tools_or_skills": 10,
+      "training_or_mentoring": 10,
+      "probation_terms": 10,
+      "employment_type": 10
+    },
+    "pair_details": [
+      {
+        "matched_pair_id": "P01",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "duties": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "tools_or_skills": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "probation_terms": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "employment_type": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          }
+        }
+      },
+      {
+        "matched_pair_id": "P02",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "duties": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "tools_or_skills": {
+            "jeonbuk": "confirmed",
+            "metro": "vague",
+            "differs": true
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "probation_terms": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "employment_type": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          }
+        }
+      },
+      {
+        "matched_pair_id": "P03",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "duties": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "tools_or_skills": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "absent",
+            "metro": "vague",
+            "differs": true
+          },
+          "probation_terms": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "employment_type": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          }
+        }
+      },
+      {
+        "matched_pair_id": "P04",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "confirmed",
+            "metro": "vague",
+            "differs": true
+          },
+          "duties": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "tools_or_skills": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "probation_terms": {
+            "jeonbuk": "confirmed",
+            "metro": "vague",
+            "differs": true
+          },
+          "employment_type": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          }
+        }
+      },
+      {
+        "matched_pair_id": "P05",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "duties": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "tools_or_skills": {
+            "jeonbuk": "absent",
+            "metro": "vague",
+            "differs": true
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "probation_terms": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "employment_type": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          }
+        }
+      },
+      {
+        "matched_pair_id": "P06",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "duties": {
+            "jeonbuk": "confirmed",
+            "metro": "vague",
+            "differs": true
+          },
+          "tools_or_skills": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "confirmed",
+            "metro": "absent",
+            "differs": true
+          },
+          "probation_terms": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "employment_type": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          }
+        }
+      },
+      {
+        "matched_pair_id": "P07",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "duties": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "tools_or_skills": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "probation_terms": {
+            "jeonbuk": "absent",
+            "metro": "vague",
+            "differs": true
+          },
+          "employment_type": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          }
+        }
+      },
+      {
+        "matched_pair_id": "P08",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "vague",
+            "metro": "vague",
+            "differs": false
+          },
+          "duties": {
+            "jeonbuk": "absent",
+            "metro": "absent",
+            "differs": false
+          },
+          "tools_or_skills": {
+            "jeonbuk": "vague",
+            "metro": "vague",
+            "differs": false
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "vague",
+            "metro": "absent",
+            "differs": true
+          },
+          "probation_terms": {
+            "jeonbuk": "vague",
+            "metro": "absent",
+            "differs": true
+          },
+          "employment_type": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          }
+        }
+      },
+      {
+        "matched_pair_id": "P09",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "duties": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "tools_or_skills": {
+            "jeonbuk": "confirmed",
+            "metro": "absent",
+            "differs": true
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "absent",
+            "metro": "vague",
+            "differs": true
+          },
+          "probation_terms": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "employment_type": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          }
+        }
+      },
+      {
+        "matched_pair_id": "P10",
+        "field_status": {
+          "salary": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "duties": {
+            "jeonbuk": "confirmed",
+            "metro": "confirmed",
+            "differs": false
+          },
+          "tools_or_skills": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "training_or_mentoring": {
+            "jeonbuk": "absent",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "probation_terms": {
+            "jeonbuk": "vague",
+            "metro": "confirmed",
+            "differs": true
+          },
+          "employment_type": {
+            "jeonbuk": "vague",
+            "metro": "vague",
+            "differs": false
+          }
+        }
+      }
+    ]
+  },
+  "unmatched": {
+    "unmatched_count": 2,
+    "unmatched_records": [
+      {
+        "posting_id": "JB-011",
+        "region_group": "jeonbuk",
+        "reason": "no candidate found under recorded query (occupation=농산물 가공 생산직, employment_type=계약직 combination has no metropolitan fixture in this build)"
+      },
+      {
+        "posting_id": "MET-011",
+        "region_group": "metro",
+        "reason": "no candidate found under recorded query (employment_type=계약직 has no Jeonbuk 생산직 fixture in this build; the Jeonbuk contract-type pool used a different sub-occupation, see JB-011)"
+      }
+    ],
+    "interpretation_note": "Unmatched records are observations only. They must not be interpreted as evidence of regional job scarcity."
+  },
+  "disclaimer": "exploratory sample; not population-generalizable",
+  "gold_status_note": "is_gold=false: these statistics are computed from a NON-GOLD synthetic/demo adjudicated file and exist only to prove the statistics code path works. They are not a claim about real Jeonbuk or metropolitan postings."
+}
