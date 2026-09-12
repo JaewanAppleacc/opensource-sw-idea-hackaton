@@ -65,7 +65,10 @@ export function AiJobRecommendPage() {
     setSelectedPosting((prev) => (prev?.posting_id === posting.posting_id ? prev : posting))
   }
 
-  const homeRegionLabel = loggedIn ? DEMO_PROFILE.homeRegionLabel : listingState.status === 'success' ? listingState.homeRegion : ''
+  // Display label is always the demo profile's Korean label, never the raw backend
+  // region code (e.g. "jeonbuk") that `listingState.homeRegion` carries — that code
+  // is an internal identifier, not user-facing copy, regardless of login state.
+  const homeRegionLabel = DEMO_PROFILE.homeRegionLabel
   const currentStep: 1 | 2 | 3 = !selectedPosting ? 1 : analysisSettled ? 3 : 2
 
   return (
