@@ -1,5 +1,5 @@
-import { AlertTriangle, Building2, ChevronDown, Loader2, MapPin, Wallet } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, Building2, FileText, Loader2, MapPin } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ApiClientError,
   analyzeByPostingId,
@@ -12,12 +12,8 @@ import { buildAxisResults, DEFAULT_SELECTED_AXES, type AxisId } from '../../lib/
 import { buildPriorityUnresolvedList } from '../../lib/priorityUnresolved'
 import { JeonbukCandidateList } from './JeonbukCandidateList'
 import type { AnalysisState } from './PostingAnalysisPanel'
-import { ImportantConditionsSelector } from './ImportantConditionsSelector'
-import { ComparisonAxesPanel } from './ComparisonAxesPanel'
-import { PriorityUnresolvedPanel } from './PriorityUnresolvedPanel'
-import { CompanyQuestionsPanel } from './CompanyQuestionsPanel'
-import { FinanceComparisonPanel } from './FinanceComparisonPanel'
 import { GapStatsNotice } from './GapStatsNotice'
+import { ComparisonReportModal } from './report/ComparisonReportModal'
 
 type MatchState =
   | { status: 'loading' }
@@ -39,17 +35,19 @@ interface InlineJeonbukAgentPanelProps {
 
 /**
  * The single right-hand 전북 비교 패널 rendered by the page for whichever
- * 수도권 공고 the user selected in the list (TASK "UI 고도화" section 4/9).
- * Looks up up to three home-region comparison candidates for that posting
- * (server-enforced home region), lets the user pick exactly one, then pick
- * up to three important conditions, compares both postings across six
- * evidence-grounded axes, surfaces the highest-priority unresolved
- * information first, generates real questions to ask the company, and
- * offers an optional finance comparison. The three candidates are a
- * deterministic display order (pre-linked pair first, then same-group
- * postings in collection order), never a similarity ranking, and only the
- * user's selected candidate is ever sent for analysis. Never computes or
- * shows a combined score or a winner anywhere in this file.
+ * 수도권 공고 the user selected in the list. Looks up up to three
+ * home-region comparison candidates for that posting (server-enforced home
+ * region), lets the user pick exactly one, then runs the existing six-field
+ * analysis on both postings. Once both succeed, the actual report is
+ * presented in `ComparisonReportModal` (TASK "단계형 리포트 모달") rather
+ * than inline here -- this panel now only ever shows the candidate list,
+ * loading/error states, and a compact "선택한 기업 + 리포트 다시 보기"
+ * summary once a report exists, so its content is never duplicated with the
+ * modal's. The three candidates are a deterministic display order
+ * (pre-linked pair first, then same-group postings in collection order),
+ * never a similarity ranking, and only the user's selected candidate is
+ * ever sent for analysis. Never computes or shows a combined score or a
+ * winner anywhere in this file or the modal it opens.
  */
 export function InlineJeonbukAgentPanel({
   metroPosting,
@@ -61,9 +59,19 @@ export function InlineJeonbukAgentPanel({
   const [selectedCandidate, setSelectedCandidate] = useState<MatchCandidate | null>(null)
   const [metroAnalysis, setMetroAnalysis] = useState<AnalysisState>({ status: 'idle' })
   const [jeonbukAnalysis, setJeonbukAnalysis] = useState<AnalysisState>({ status: 'idle' })
-  const [financeOpen, setFinanceOpen] = useState(false)
   const [selectedAxisIds, setSelectedAxisIds] = useState<AxisId[]>(DEFAULT_SELECTED_AXES)
-  const [fullComparisonOpen, setFullComparisonOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [financeCompleted, setFinanceCompleted] = useState(false)
+
+  // Guards against a late-arriving analyze response from a request that is
+  // no longer the current selection -- without this, switching candidates
+  // quickly could let a stale response overwrite newer state, or reopen a
+  // report the user already closed (TASK "모달 접근성": "늦게 도착한 응답이
+  // 닫힌 모달을 다시 열어서는 안 됩니다").
+  const requestIdRef = useRef(0)
+  // Tracks which candidate's success we've already auto-opened the modal
+  // for, so re-renders don't reopen a report the user explicitly closed.
+  const autoOpenedForRef = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -71,8 +79,10 @@ export function InlineJeonbukAgentPanel({
     setSelectedCandidate(null)
     setMetroAnalysis({ status: 'idle' })
     setJeonbukAnalysis({ status: 'idle' })
-    setFinanceOpen(false)
-    setFullComparisonOpen(false)
+    setReportOpen(false)
+    setFinanceCompleted(false)
+    requestIdRef.current += 1
+    autoOpenedForRef.current = null
     getHomeRegionMatches({ metro_posting_id: metroPosting.posting_id })
       .then((response) => {
         if (cancelled) return
@@ -95,8 +105,10 @@ export function InlineJeonbukAgentPanel({
   }, [metroPosting.posting_id])
 
   async function handleSelectCandidate(candidate: MatchCandidate) {
+    const myRequestId = ++requestIdRef.current
     setSelectedCandidate(candidate)
-    setFinanceOpen(false)
+    setReportOpen(false)
+    setFinanceCompleted(false)
     setMetroAnalysis({ status: 'loading' })
     setJeonbukAnalysis({ status: 'loading' })
 
@@ -104,6 +116,8 @@ export function InlineJeonbukAgentPanel({
       analyzeByPostingId({ posting_id: metroPosting.posting_id, expected_occupation: metroPosting.occupation }),
       analyzeByPostingId({ posting_id: candidate.posting_id, expected_occupation: candidate.occupation }),
     ])
+
+    if (requestIdRef.current !== myRequestId) return // superseded by a newer selection
 
     setMetroAnalysis(
       metroResult.status === 'fulfilled'
@@ -126,6 +140,17 @@ export function InlineJeonbukAgentPanel({
     onAnalysisSettledChange?.(analysisSettled && bothSucceeded)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysisSettled, bothSucceeded])
+
+  // 분석이 성공적으로 끝나는 순간(가짜 성공 아님, 실제 두 분석 모두 성공)에만
+  // 자동으로 리포트 모달을 연다. 같은 후보에 대해 두 번 자동으로 열지 않는다
+  // -- 사용자가 닫은 뒤에도 이 값은 그대로라 다시 열리지 않는다.
+  useEffect(() => {
+    if (bothSucceeded && selectedCandidate && autoOpenedForRef.current !== selectedCandidate.posting_id) {
+      autoOpenedForRef.current = selectedCandidate.posting_id
+      setReportOpen(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bothSucceeded, selectedCandidate])
 
   const metroAxes = useMemo(
     () => (metroAnalysis.status === 'success' ? buildAxisResults(metroAnalysis.analysis) : null),
@@ -163,6 +188,14 @@ export function InlineJeonbukAgentPanel({
     }
     return counts
   }, [metroAxes, jeonbukAxes])
+
+  function handleRequestAnotherCandidate() {
+    setReportOpen(false)
+    setSelectedCandidate(null)
+    setMetroAnalysis({ status: 'idle' })
+    setJeonbukAnalysis({ status: 'idle' })
+    setFinanceCompleted(false)
+  }
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -213,13 +246,11 @@ export function InlineJeonbukAgentPanel({
       </div>
 
       {selectedCandidate && (
-        <div className="space-y-4 border-t border-ink-border pt-4">
-          <ImportantConditionsSelector selected={selectedAxisIds} onChange={setSelectedAxisIds} />
-
+        <div className="space-y-3 border-t border-ink-border pt-4">
           {!analysisSettled && (
             <p className="flex items-center gap-2 text-sm text-ink-500">
               <Loader2 size={16} aria-hidden="true" className="animate-spin" />
-              공고를 분석하고 있어요...
+              채용공고의 확인 가능한 정보를 정리하고 있습니다.
             </p>
           )}
 
@@ -236,70 +267,47 @@ export function InlineJeonbukAgentPanel({
             </p>
           )}
 
-          {bothSucceeded && metroAxes && jeonbukAxes && statusCounts && (
-            <div className="space-y-4 border-t border-ink-border pt-4">
-              <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                <span className="font-semibold text-brand-green">확인됨 {statusCounts.confirmed}</span>
-                <span className="font-semibold text-amber-700">추가 확인 {statusCounts.vague}</span>
-                <span className="font-semibold text-ink-500">공고에 없음 {statusCounts.absent}</span>
+          {bothSucceeded && (
+            <div className="space-y-2.5 rounded-card border border-ink-border bg-white p-3">
+              <p className="text-sm text-ink-700">
+                <strong className="font-semibold text-ink-900">
+                  {selectedCandidate.company_name ?? selectedCandidate.posting_id}
+                </strong>
+                과(와)의 비교 리포트가 준비됐어요.
               </p>
-
-              <PriorityUnresolvedPanel
-                items={priorityItems}
-                metroLabel="수도권 공고"
-                jeonbukLabel={jeonbukCardLabel}
-              />
-
-              <details
-                open={fullComparisonOpen}
-                onToggle={(e) => setFullComparisonOpen((e.target as HTMLDetailsElement).open)}
-                className="group"
+              <button
+                type="button"
+                onClick={() => setReportOpen(true)}
+                className="flex items-center gap-1.5 rounded-pill border border-brand-blue px-3.5 py-1.5 text-sm font-semibold text-brand-blue transition-colors duration-150 hover:bg-tint-sky/20"
               >
-                <summary className="flex cursor-pointer list-none items-center gap-1 text-sm font-semibold text-brand-blue marker:content-none">
-                  전체 조건 비교 보기
-                  <ChevronDown
-                    size={14}
-                    aria-hidden="true"
-                    className={`transition-transform duration-200 ${fullComparisonOpen ? 'rotate-180' : ''}`}
-                  />
-                </summary>
-                <div className="mt-3">
-                  <ComparisonAxesPanel
-                    metroLabel="수도권 공고"
-                    jeonbukLabel={jeonbukCardLabel}
-                    metroAxes={metroAxes}
-                    jeonbukAxes={jeonbukAxes}
-                    selectedAxisIds={selectedAxisIds}
-                  />
-                </div>
-              </details>
-
-              <CompanyQuestionsPanel
-                items={priorityItems}
-                metroLabel="수도권 공고"
-                jeonbukLabel={jeonbukCardLabel}
-              />
-              <GapStatsNotice />
+                <FileText size={14} aria-hidden="true" />
+                비교 리포트 다시 보기
+              </button>
             </div>
           )}
+
+          <GapStatsNotice />
         </div>
       )}
 
-      {analysisSettled && bothSucceeded && (
-        <div className="border-t border-ink-border pt-4">
-          {!financeOpen ? (
-            <button
-              type="button"
-              onClick={() => setFinanceOpen(true)}
-              className="flex items-center gap-2 rounded-pill border border-ink-border bg-white px-4 py-2 text-sm font-semibold text-ink-700 transition-colors duration-150 hover:border-brand-blue hover:text-brand-blue"
-            >
-              <Wallet size={15} aria-hidden="true" />
-              생활비까지 비교해보기
-            </button>
-          ) : (
-            <FinanceComparisonPanel />
-          )}
-        </div>
+      {bothSucceeded && metroAxes && jeonbukAxes && statusCounts && selectedCandidate && (
+        <ComparisonReportModal
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+          onRequestAnotherCandidate={handleRequestAnotherCandidate}
+          metroPosting={metroPosting}
+          jeonbukCandidate={selectedCandidate}
+          metroLabel="수도권 공고"
+          jeonbukLabel={jeonbukCardLabel}
+          metroAxes={metroAxes}
+          jeonbukAxes={jeonbukAxes}
+          priorityItems={priorityItems}
+          statusCounts={statusCounts}
+          selectedAxisIds={selectedAxisIds}
+          onSelectedAxisIdsChange={setSelectedAxisIds}
+          financeCompleted={financeCompleted}
+          onFinanceComputed={() => setFinanceCompleted(true)}
+        />
       )}
     </div>
   )

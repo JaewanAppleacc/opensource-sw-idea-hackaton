@@ -74,6 +74,63 @@
   .candidate-stagger-in {
     animation: candidate-stagger 220ms ease-out both;
   }
+
+  /* 리포트 모달 단계 전환: opacity + translateX 8~12px, 180~220ms (TASK
+     "단계형 리포트 모달" section "애니메이션"). Replays each time the step
+     content remounts (React `key={step}`). */
+  @keyframes report-step {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  .report-step-in {
+    animation: report-step 200ms ease-out both;
+  }
+
+  /* 놓치기 쉬운 정보 카드: 최대 40ms 간격의 절제된 stagger. */
+  @keyframes report-card-stagger {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .report-card-stagger {
+    animation: report-card-stagger 200ms ease-out both;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .report-print-area,
+  .report-print-area * {
+    visibility: visible;
+  }
+  .report-print-hide,
+  .report-print-hide * {
+    display: none !important;
+  }
+  .report-print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    overflow: visible !important;
+  }
 }
 
 @layer base {

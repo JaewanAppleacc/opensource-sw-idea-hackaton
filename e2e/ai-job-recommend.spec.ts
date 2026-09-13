@@ -135,13 +135,15 @@ test.describe('AI추천(일자리) 목록 화면 (전북 일자리 비교 에이
     // or a typed error) rather than only for the transient loading text --
     // private full text (data/private/intake_raw/**) is only staged
     // locally on some machines (see README), so this spec must handle
-    // both outcomes without assuming either one.
-    const successSummary = panel.getByText('확인됨')
+    // both outcomes without assuming either one. On success, the report
+    // modal opens automatically with the *second* candidate's info -- see
+    // e2e/comparison-report-modal.spec.ts for the modal's own coverage.
+    const dialog = page.getByRole('dialog')
     const jeonbukErrorAlert = panel.getByText(/후보:/)
-    await expect(successSummary.or(jeonbukErrorAlert)).toBeVisible({ timeout: 15000 })
+    await expect(dialog.or(jeonbukErrorAlert)).toBeVisible({ timeout: 15000 })
 
-    if (await successSummary.isVisible()) {
-      await expect(panel.getByText(secondCandidateLabel).first()).toBeVisible()
+    if (await dialog.isVisible()) {
+      await expect(dialog.getByText(secondCandidateLabel).first()).toBeVisible()
     }
   })
 

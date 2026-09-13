@@ -176,7 +176,14 @@ function ResultCard({
   )
 }
 
-export function FinanceComparisonPanel() {
+interface FinanceComparisonPanelProps {
+  /** Fired once after the first successful /finance/compare response, purely
+   * so a caller (the report modal's summary step) can show "자금 시나리오
+   * 실행 여부" without duplicating this component's own calculation state. */
+  onComputed?: () => void
+}
+
+export function FinanceComparisonPanel({ onComputed }: FinanceComparisonPanelProps = {}) {
   const idPrefix = useId()
   const [metro, setMetro] = useState<DetailedMoneyFormState>(DEFAULT_METRO_FORM)
   const [jeonbuk, setJeonbuk] = useState<DetailedMoneyFormState>(DEFAULT_JEONBUK_FORM)
@@ -227,6 +234,7 @@ export function FinanceComparisonPanel() {
     try {
       const result = await compareFinance({ metropolitan, jeonbuk: jb })
       setState({ status: 'success', result })
+      if (!hasComputedOnce) onComputed?.()
       setHasComputedOnce(true)
     } catch (err) {
       setState({
@@ -272,6 +280,9 @@ export function FinanceComparisonPanel() {
         <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
         시연용 예시값입니다. 실제 거주지와 출퇴근 조건에 맞게 수정할 수 있습니다.
       </p>
+      {state.status === 'idle' && (
+        <p className="mt-2 text-xs text-ink-500">조건을 입력하면 계산할 수 있습니다. 이 단계는 건너뛸 수 있어요.</p>
+      )}
 
       <form onSubmit={handleSubmit} noValidate className="mt-4 space-y-4">
         <MoneyFields legend="수도권" values={metro} onChange={setMetro} idPrefix={`${idPrefix}-metro`} />

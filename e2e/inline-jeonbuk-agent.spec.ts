@@ -30,9 +30,11 @@ test.describe('지역 기반 커리어 의사결정 에이전트 - 실제 데이
     return panel
   }
 
-  test('로그인 -> 목록 -> 후보 선택 -> 중요조건 선택 -> 요약·우선순위 -> 전체 비교 -> 기업 질문 -> 자금 비교 -> 재계산 -> 역전점', async ({
-    page,
-  }) => {
+  test('로그인 -> 목록 -> 후보 선택 -> 리포트 모달(조건·우선순위·질문·자금·역전점)', async ({ page }) => {
+    // 리포트 모달 세부 단계(조건 비교, 우선 확인 조건, 질문, 자금, 요약)의
+    // 상세 커버리지는 e2e/comparison-report-modal.spec.ts로 옮겨졌다. 이
+    // 테스트는 그 진입 흐름(로그인 -> 목록 -> 후보 선택 -> 모달 오픈)과 콘솔
+    // 에러 없음, 자금 재계산까지 이어지는 전체 여정만 남긴다.
     const consoleErrors: string[] = []
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text())
@@ -40,108 +42,70 @@ test.describe('지역 기반 커리어 의사결정 에이전트 - 실제 데이
 
     const panel = await openFirstCandidateComparison(page)
 
-    // 중요조건 3개 선택 (기본값이 이미 3개 선택되어 있음을 확인)
-    await expect(panel.getByText('중요하게 생각하는 조건을 선택해 주세요')).toBeVisible()
-    const checkboxes = panel.getByRole('checkbox')
-    const checkedCount = await checkboxes.evaluateAll(
-      (els) => els.filter((el) => (el as HTMLInputElement).checked).length,
-    )
-    expect(checkedCount).toBe(3)
-
-    // 4개째 선택 시도 -> 막혀야 함 (최대 3개)
-    const uncheckedBoxes = panel.getByRole('checkbox', { checked: false })
-    const uncheckedCount = await uncheckedBoxes.count()
-    for (let i = 0; i < uncheckedCount; i++) {
-      await expect(uncheckedBoxes.nth(i)).toBeDisabled()
-    }
-
-    // 두 분석이 모두 성공(private 원문이 이 머신에 있음)해야 이어지는
-    // 비교/질문/자금 단계를 검증할 수 있다. 없으면 fail-closed 오류만 확인하고
+    // 두 분석이 모두 성공(private 원문이 이 머신에 있음)해야 모달이 열리고
+    // 이어지는 단계를 검증할 수 있다. 없으면 fail-closed 오류만 확인하고
     // 스킵한다 (README "장애 발생 시 데모 복구법" 참고).
-    const statusSummary = panel.getByText(/확인됨 \d+/)
+    const dialog = page.getByRole('dialog')
     const jeonbukError = panel.getByText(/후보:/)
-    await expect(statusSummary.or(jeonbukError)).toBeVisible({ timeout: 15000 })
+    await expect(dialog.or(jeonbukError)).toBeVisible({ timeout: 15000 })
     test.skip(
       await jeonbukError.isVisible(),
       'data/private/intake_raw/** 가 이 머신에 없어 실제 분석이 fail-closed로 종료됨 -- README 참고',
     )
 
-    // 상태 요약 (확인됨/추가 확인/공고에 없음)이 전체 비교보다 먼저 보인다.
-    await expect(panel.getByText(/확인됨 \d+/)).toBeVisible()
-    await expect(panel.getByText(/추가 확인 \d+/)).toBeVisible()
-    await expect(panel.getByText(/공고에 없음 \d+/)).toBeVisible()
-
-    // 우선 확인할 조건이 전체 비교보다 먼저 렌더된다.
-    await expect(panel.getByText('우선 확인할 조건')).toBeVisible()
-
-    // 전체 조건 비교 펼치기
-    await panel.getByText('전체 조건 비교 보기').click()
-    await expect(panel.getByText('임금·보상').first()).toBeVisible()
-    await expect(panel.getByText('고용안정성').first()).toBeVisible()
-    await expect(panel.getByText('담당 업무와 직무 적합성').first()).toBeVisible()
-    await expect(panel.getByText('필요 역량과 지원조건').first()).toBeVisible()
-    await expect(panel.getByText('근로시간과 근무환경').first()).toBeVisible()
-    await expect(panel.getByText('성장·복지 지원').first()).toBeVisible()
-    // 근로시간과 근무환경, 복지·기숙사·통근지원은 not_evaluated -- 항상 "현재
-    // MVP 분석 미지원"으로 표시되고, absent(공고에서 확인되지 않음)로 표시되지
-    // 않는다.
-    await expect(
-      panel.getByText('근로시간·교대제·통근지원은 현재 MVP의 자동 분석 범위에 포함되지 않습니다.').first(),
-    ).toBeVisible()
-    await expect(
-      panel.getByText('기숙사·식사 제공·통근지원 등 복지 정보는 현재 MVP의 자동 분석 범위에 포함되지 않습니다.').first(),
-    ).toBeVisible()
-    await expect(panel.getByText('현재 MVP 분석 미지원').first()).toBeVisible()
-
     // 양쪽 분석이 끝나면 페이지 상단 단계 표시가 ③ 지원 전 확인을 현재 단계로
-    // 강조한다.
+    // 강조한다 (모달과 무관하게, 페이지 레벨 상태).
     await expect(
       page.getByTestId('service-step-indicator').getByText('지원 전 확인'),
     ).toHaveClass(/bg-brand-blue/)
 
-    // 종합점수/승자 표시가 없음 -- 비교 패널 범위로 한정한다.
-    const panelText = await panel.innerText()
-    expect(panelText).not.toMatch(/점수|승자|추천 점수|적합도 \d/)
+    // 종합점수/승자 표시가 없음 -- 모달 전체 범위.
+    const dialogText = await dialog.innerText()
+    expect(dialogText).not.toMatch(/점수|승자|추천 점수|적합도 \d/)
 
-    // not_evaluated 항목(근로시간·교대제·통근, 복지·기숙사·통근지원)은 우선
-    // 확인할 조건 목록에 절대 나타나지 않는다.
-    const priorityBlock = panel.getByText('우선 확인할 조건').locator('..')
-    const priorityBlockText = await priorityBlock.innerText()
-    expect(priorityBlockText).not.toContain('근로시간·교대제·통근')
-    expect(priorityBlockText).not.toContain('복지·기숙사·통근지원')
+    // 조건 비교 단계로 이동 -> 6개 축 전부 렌더 확인
+    await dialog.getByRole('button', { name: '다음' }).click()
+    for (const label of ['임금·보상', '고용안정성', '담당 업무와 직무 적합성', '필요 역량과 지원조건', '근로시간과 근무환경', '성장·복지 지원']) {
+      await expect(dialog.getByText(label).first()).toBeVisible()
+    }
+    await expect(dialog.getByText('현재 MVP 분석 미지원').first()).toBeVisible()
 
-    // 지원 전 확인할 질문 (체크리스트 + 복사)
-    const questionsHeading = panel.getByText('지원 전 확인할 질문')
-    if (await questionsHeading.isVisible().catch(() => false)) {
-      await expect(panel.getByRole('button', { name: '복사' }).first()).toBeVisible()
-      const firstQuestionCheckbox = panel.getByRole('checkbox').last()
-      await expect(firstQuestionCheckbox).toBeVisible()
-      // 가짜 기업 답변이 없어야 함 -- 사용자 메모는 opt-in으로만 존재
-      await panel.getByRole('button', { name: '메모 추가' }).first().click()
-      await expect(panel.getByText('내 메모 (기업의 실제 답변이 아닙니다)').first()).toBeVisible()
+    // 우선 확인할 조건 단계 -> not_evaluated 항목은 절대 나타나지 않는다.
+    await dialog.getByRole('button', { name: '다음' }).click()
+    const unknownsText = await dialog.innerText()
+    expect(unknownsText).not.toContain('근로시간·교대제·통근')
+    expect(unknownsText).not.toContain('복지·기숙사·통근지원')
+
+    // 지원 전 확인할 질문 단계 (체크리스트 + 복사, 메모는 opt-in)
+    await dialog.getByRole('button', { name: '다음' }).click()
+    const copyButton = dialog.getByRole('button', { name: '복사' }).first()
+    if (await copyButton.isVisible().catch(() => false)) {
+      const noteButton = dialog.getByRole('button', { name: '메모 추가' }).first()
+      await noteButton.click()
+      await expect(dialog.getByText('내 메모 (기업의 실제 답변이 아닙니다)').first()).toBeVisible()
     }
 
-    // 자금 축적 비교 펼치기
-    await panel.getByRole('button', { name: /생활비까지 비교해보기/ }).click()
-    await expect(panel.getByText('시연용 예시값입니다. 실제 거주지와 출퇴근 조건에 맞게 수정할 수 있습니다.')).toBeVisible()
-    await panel.getByRole('button', { name: '자금 비교 계산하기' }).click()
-    await expect(panel.getByText('월 가용자금').first()).toBeVisible({ timeout: 10000 })
+    // 자금 단계 -> 계산 -> 재계산
+    await dialog.getByRole('button', { name: '다음' }).click()
+    await expect(dialog.getByText('시연용 예시값입니다. 실제 거주지와 출퇴근 조건에 맞게 수정할 수 있습니다.')).toBeVisible()
+    await dialog.getByRole('button', { name: '자금 비교 계산하기' }).click()
+    await expect(dialog.getByText('월 가용자금').first()).toBeVisible({ timeout: 10000 })
 
     // 조건 역전점 확인 -- "연봉 차이"가 아닌 "월 OO 차이" 표현만 사용한다.
-    await expect(panel.getByText('조건 역전점', { exact: false })).toBeVisible()
-    await expect(panel.getByText('월 주거비 차이 역전점.')).toBeVisible()
+    await expect(dialog.getByText('조건 역전점', { exact: false })).toBeVisible()
+    await expect(dialog.getByText('월 주거비 차이 역전점.')).toBeVisible()
     await expect(
-      panel.getByText('한 가지 조건만 변경하고 나머지 입력값은 동일하다고 가정한 시나리오입니다.'),
+      dialog.getByText('한 가지 조건만 변경하고 나머지 입력값은 동일하다고 가정한 시나리오입니다.'),
     ).toBeVisible()
-    const crossoverSectionText = await panel.getByText('조건 역전점', { exact: false }).locator('..').innerText()
+    const crossoverSectionText = await dialog.getByText('조건 역전점', { exact: false }).locator('..').innerText()
     expect(crossoverSectionText).not.toContain('연봉 차이')
 
     // 주거비·교통비 입력 변경 -> 1년·3년 결과 자동 재계산
-    const oneYearBefore = await panel.getByText('1년 가용자금').first().locator('..').innerText()
-    const metroFields = panel.locator('fieldset', { hasText: '수도권' }).first()
+    const oneYearBefore = await dialog.getByText('1년 가용자금').first().locator('..').innerText()
+    const metroFields = dialog.locator('fieldset', { hasText: '수도권' }).first()
     await metroFields.getByLabel('교통비 (원/월)').fill('500000')
     await expect(async () => {
-      const oneYearAfter = await panel.getByText('1년 가용자금').first().locator('..').innerText()
+      const oneYearAfter = await dialog.getByText('1년 가용자금').first().locator('..').innerText()
       expect(oneYearAfter).not.toBe(oneYearBefore)
     }).toPass({ timeout: 10000 })
 
@@ -150,24 +114,26 @@ test.describe('지역 기반 커리어 의사결정 에이전트 - 실제 데이
 
   test('중요조건을 다르게 선택하면 우선 확인할 정보 목록도 달라진다', async ({ page }) => {
     const panel = await openFirstCandidateComparison(page)
-    const statusSummary = panel.getByText(/확인됨 \d+/)
+    const dialog = page.getByRole('dialog')
     const jeonbukError = panel.getByText(/후보:/)
-    await expect(statusSummary.or(jeonbukError)).toBeVisible({ timeout: 15000 })
+    await expect(dialog.or(jeonbukError)).toBeVisible({ timeout: 15000 })
     test.skip(
       await jeonbukError.isVisible(),
       'data/private/intake_raw/** 가 이 머신에 없어 실제 분석이 fail-closed로 종료됨 -- README 참고',
     )
 
-    const before = await panel.getByText('우선 확인할 조건').locator('..').innerText()
+    // 조건 다시 선택하기(details)는 조건 비교 단계 안에 있다.
+    await dialog.getByRole('button', { name: '다음' }).click()
+    await dialog.getByText('중요하게 생각하는 조건 다시 선택하기').click()
 
     // 임금·보상(첫 번째 체크박스) 해제, 필요 역량과 지원조건 체크
-    await panel.getByRole('checkbox').nth(0).uncheck()
-    await panel.locator('label', { hasText: '필요 역량과 지원조건' }).getByRole('checkbox').check()
+    await dialog.getByRole('checkbox').nth(0).uncheck()
+    await dialog.locator('label', { hasText: '필요 역량과 지원조건' }).getByRole('checkbox').check()
 
-    await expect(async () => {
-      const after = await panel.getByText('우선 확인할 조건').locator('..').innerText()
-      expect(after).not.toBe(before)
-    }).toPass({ timeout: 5000 })
+    // 우선 확인할 조건 단계로 이동하면 선택이 반영되어 있어야 한다.
+    await dialog.getByRole('button', { name: '다음' }).click()
+    const after = await dialog.innerText()
+    expect(after).toContain('필요 역량과 지원조건')
   })
 
   test('private 데이터가 없는 posting_id는 fail-closed 오류를 보여준다 (analyze-by-id)', async ({ request }) => {
@@ -247,9 +213,9 @@ test.describe('모바일 뷰포트', () => {
     const candidateButton = panel.locator('ul > li button').first()
     await expect(candidateButton).toBeVisible({ timeout: 10000 })
     await candidateButton.click()
-    const statusSummary = panel.getByText(/확인됨 \d+/)
+    const dialog = page.getByRole('dialog')
     const jeonbukError = panel.getByText(/후보:/)
-    await expect(statusSummary.or(jeonbukError)).toBeVisible({ timeout: 15000 })
+    await expect(dialog.or(jeonbukError)).toBeVisible({ timeout: 15000 })
 
     const hasHorizontalOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
