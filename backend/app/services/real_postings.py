@@ -23,6 +23,7 @@ here writes to either location.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -38,6 +39,29 @@ from .matching import DATASET_DESCRIPTION as SYNTHETIC_DATASET_DESCRIPTION  # no
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 
 MAX_HOME_REGION_CANDIDATES = 3
+
+# The default demo listing (GET /postings/home-region-listing) shows only
+# this allow-listed set of matched pairs (TASK "데모 전체를 연구직 청년
+# 페르소나 + 연구직 공고 비교로 전환" section 7/9) -- a config-based filter,
+# not a schema/contract change: PostingListItem gains no new field, and
+# every other posting (the existing 10:10 생산직 production/assembly sample)
+# stays fully intact in data/intake/real_postings.jsonl and remains reachable
+# through /postings/home-region-matches, /postings/analyze-by-id, and every
+# existing acquisition/evaluation doc -- it is simply not offered as a
+# starting point in the default demo screen anymore. Extend this set (never
+# remove a still-preserved pair) as additional real, verified 연구개발
+# pairs are ingested; see docs/acquisition/RESEARCH_DEMO_PAIR.md and
+# REAL_DATA_ACQUISITION_HANDOFF.md for the sourcing record of each entry.
+ACTIVE_DEMO_MATCHED_PAIR_IDS = frozenset(
+    {
+        "P-REAL-011",  # 식품공학 기술자 및 연구원 -- 대표(첫 번째) 페어
+        "P-REAL-012",  # 전자공학 기술자 및 연구원
+    }
+)
+
+# The representative pair's metro posting always sorts first in the default
+# listing, ahead of any other active pair, regardless of posting_id order.
+REPRESENTATIVE_METRO_POSTING_ID = "MET-00"
 
 REAL_DATASET_DESCRIPTION = (
     "These comparison postings come from a real Work24 MVP sample (see REAL_DATA_ACQUISITION_HANDOFF.md). "
@@ -147,13 +171,26 @@ def _to_list_item(record: dict) -> PostingListItem:
 
 
 def list_capital_area_postings() -> PostingListResponse:
-    """Every real, capital-area ('metro') posting from the curated batch,
-    public metadata only -- never full_text (redistributable: false for
-    every record in this batch; see REAL_DATA_ACQUISITION_HANDOFF.md).
+    """Every real, capital-area ('metro') posting in the current active demo
+    set (`ACTIVE_DEMO_MATCHED_PAIR_IDS`), public metadata only -- never
+    full_text (redistributable: false for every record in this batch; see
+    REAL_DATA_ACQUISITION_HANDOFF.md).
+
+    This is a *display* filter only: postings outside the active set (the
+    existing 생산직 production/assembly sample) are untouched on disk and
+    remain fully reachable by posting_id through every other function in
+    this module -- they are just not offered as a starting point on the
+    default demo screen. See ACTIVE_DEMO_MATCHED_PAIR_IDS's doc comment.
     """
     postings_by_id = _load_real_postings_by_id(str(_real_postings_path()))
-    items = [_to_list_item(r) for r in postings_by_id.values() if r.get("region_group") == "metro"]
-    items.sort(key=lambda item: item.posting_id)
+    items = [
+        _to_list_item(r)
+        for r in postings_by_id.values()
+        if r.get("region_group") == "metro"
+        and r.get("matched_pair_id") in ACTIVE_DEMO_MATCHED_PAIR_IDS
+        and not r.get("synthetic_test_fixture", False)
+    ]
+    items.sort(key=lambda item: (item.posting_id != REPRESENTATIVE_METRO_POSTING_ID, item.posting_id))
     return PostingListResponse(
         home_region=home_region(),
         postings=items,
@@ -279,7 +316,9 @@ def resolve_private_text(posting_id: str) -> tuple[str, Optional[str]]:
     (never a bare FileNotFoundError, never an invented placeholder text) if
     this machine has no private copy for posting_id right now, including
     when posting_id is not a plain identifier (fails closed rather than
-    resolving a path outside the private directory).
+    resolving a path outside the private directory), or when the private
+    file's text does not match the public record's `full_text_sha256` --
+    a corrupted or substituted private copy is never silently analyzed.
     """
     path = _private_text_path(posting_id)
     if path is None or not path.is_file():
@@ -295,4 +334,15 @@ def resolve_private_text(posting_id: str) -> tuple[str, Optional[str]]:
             f"private record for posting_id={posting_id!r} has empty full_text",
             details={"posting_id": posting_id},
         )
+
+    public_record = _load_real_postings_by_id(str(_real_postings_path())).get(posting_id)
+    expected_hash = public_record.get("full_text_sha256") if public_record else None
+    if expected_hash:
+        actual_hash = hashlib.sha256(full_text.encode("utf-8")).hexdigest()
+        if actual_hash != expected_hash:
+            raise PrivateDataUnavailableError(
+                f"private full text for posting_id={posting_id!r} does not match the public full_text_sha256",
+                details={"posting_id": posting_id},
+            )
+
     return full_text, record.get("occupation")

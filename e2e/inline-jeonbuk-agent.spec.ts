@@ -137,8 +137,11 @@ test.describe('지역 기반 커리어 의사결정 에이전트 - 실제 데이
   })
 
   test('private 데이터가 없는 posting_id는 fail-closed 오류를 보여준다 (analyze-by-id)', async ({ request }) => {
-    // Directly exercises the API contract's fail-closed guarantee.
-    const base = process.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    // Directly exercises the API contract's fail-closed guarantee. Uses the
+    // same E2E_BACKEND_PORT this run's own webServer picked (playwright.config.ts)
+    // rather than a hardcoded port, so this test never targets another
+    // session's backend.
+    const base = process.env.VITE_API_BASE_URL || `http://127.0.0.1:${process.env.E2E_BACKEND_PORT ?? '8000'}`
     const res = await request.post(`${base}/api/v1/postings/analyze-by-id`, {
       data: { posting_id: 'NOT-A-REAL-POSTING-ID' },
     })

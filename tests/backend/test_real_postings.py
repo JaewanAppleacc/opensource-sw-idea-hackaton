@@ -28,6 +28,11 @@ def metro_posting(pid, **overrides):
         "full_text": None,
         "redistributable": False,
         "synthetic_test_fixture": False,
+        # Every fixture posting is in the test's active demo set by default
+        # (see the `real_data` fixture's ACTIVE_DEMO_MATCHED_PAIR_IDS
+        # monkeypatch) -- tests of list_capital_area_postings' own filtering
+        # behavior override this explicitly.
+        "matched_pair_id": f"P-TEST-{pid}",
     }
     base.update(overrides)
     return base
@@ -47,6 +52,7 @@ def home_posting(pid, **overrides):
         "full_text": None,
         "redistributable": False,
         "synthetic_test_fixture": False,
+        "matched_pair_id": f"P-TEST-{pid}",
     }
     base.update(overrides)
     return base
@@ -82,6 +88,17 @@ def real_data(tmp_path, monkeypatch):
     monkeypatch.setenv("REAL_POSTINGS_PATH", str(postings_path))
     monkeypatch.setenv("REAL_MATCHED_PAIRS_PATH", str(pairs_path))
     monkeypatch.setenv("PRIVATE_INTAKE_RAW_DIR", str(private_dir))
+    # The default active-demo-listing filter only allow-lists real,
+    # verified 연구개발 pairs (see ACTIVE_DEMO_MATCHED_PAIR_IDS) -- for this
+    # generic fixture, put every fixture posting's own matched_pair_id in
+    # the active set so existing tests of list_capital_area_postings'
+    # general (non-filter-specific) behavior are unaffected. Tests of the
+    # filter itself override this explicitly.
+    monkeypatch.setattr(
+        real_postings,
+        "ACTIVE_DEMO_MATCHED_PAIR_IDS",
+        frozenset({"P-TEST-TEST-MET-01", "P-TEST-TEST-MET-02"}),
+    )
     monkeypatch.setenv("DEMO_HOME_REGION", "jeonbuk")
     real_postings.clear_real_postings_cache()
     return {"postings_path": postings_path, "pairs_path": pairs_path, "private_dir": private_dir}

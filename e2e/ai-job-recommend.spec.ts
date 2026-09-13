@@ -186,9 +186,19 @@ test.describe('AI추천(일자리) 목록 화면 (전북 일자리 비교 에이
     await expect(firstPosting).toContainText('주식회사누리지에프에스')
     await expect(firstPosting).toContainText('식품공학 기술자 및 연구원')
 
+    // 생산직(제조 조립원) 문구는 기본 추천 목록 어디에도 없어야 한다 -- 보존된
+    // 기존 생산·조립 데이터는 active demo listing에서 제외된다 (TASK "데모
+    // 전체를 연구직 청년 페르소나 + 연구직 공고 비교로 전환" section 4/9).
+    const listText = await list.innerText()
+    expect(listText).not.toContain('생산직(제조 조립원)')
+
     await firstPosting.getByRole('button', { name: /지역 비교/ }).click()
     const panel = page.getByTestId('jeonbuk-comparison-panel')
     await expect(panel.getByText('(주)참고을 지평선 제2공장')).toBeVisible()
     await expect(panel.getByText(/식품공학 기술자 및 연구원/).first()).toBeVisible()
+
+    // 전북 비교 후보 목록에도 생산직 공고는 나타나지 않는다.
+    const panelText = await panel.innerText()
+    expect(panelText).not.toContain('생산직(제조 조립원)')
   })
 })
