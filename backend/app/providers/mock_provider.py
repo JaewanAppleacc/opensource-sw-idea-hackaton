@@ -15,7 +15,14 @@ from typing import List, Optional, Tuple
 from ..models.common import FIELD_NAMES
 from ..rules.field_rules import get_field_rules
 
-_EMPLOYMENT_TYPE_KEYWORDS = ["정규직", "계약직", "파견직", "파견", "인턴"]
+_EMPLOYMENT_TYPE_KEYWORDS = [
+    ("기간의 정함이 없는 근로계약", "정규직"),
+    ("정규직", "정규직"),
+    ("계약직", "계약직"),
+    ("파견직", "파견직"),
+    ("파견", "파견"),
+    ("인턴", "인턴"),
+]
 
 
 def _split_segments(source_text: str) -> List[Tuple[str, int]]:
@@ -46,9 +53,9 @@ def _find_best_segment(segments: List[Tuple[str, int]], anchors: List[str]) -> O
 
 
 def _guess_employment_type(source_text: str) -> Optional[str]:
-    for keyword in _EMPLOYMENT_TYPE_KEYWORDS:
+    for keyword, normalized_value in _EMPLOYMENT_TYPE_KEYWORDS:
         if keyword in source_text:
-            return keyword
+            return normalized_value
     return None
 
 

@@ -35,7 +35,7 @@ test.describe('AI추천(일자리) 목록 화면 (전북 일자리 비교 에이
     const profileLine = page.getByText('전북 청년 데모 사용자')
     await expect(profileLine).toBeVisible()
     const profileText = await profileLine.locator('..').innerText()
-    expect(profileText).toContain('제조·조립')
+    expect(profileText).toContain('식품 연구개발')
     expect(profileText).toContain('정규직')
     expect(profileText).toContain('전북특별자치도')
 
@@ -169,27 +169,26 @@ test.describe('AI추천(일자리) 목록 화면 (전북 일자리 비교 에이
     ).toBeVisible()
   })
 
-  test('연구직 실제 데이터가 없으므로 데모 프로필·추천 공고·전북 후보 직종이 제조·조립으로 유지된다 (BLOCKED_RESEARCH_DATA)', async ({
+  test('실제 식품 연구개발 페어가 프로필과 추천 목록 최상단에 일관되게 표시된다', async ({
     page,
   }) => {
-    // data/intake/real_postings.jsonl, data/intake/occupation_feasibility.json에
-    // 생산직(제조 조립원) 외 연구개발 직종 데이터가 없음을 확인했다 (2026-09-13).
-    // 따라서 이 시연은 프로필을 연구직으로 전환하지 않는다 -- TASK section 5 "실패 시" 규칙.
     await page.goto('/ai-job-recommend')
     const chipRow = page.getByLabel('현재 시연 직종·고용형태·생활권')
-    await expect(chipRow.getByText('제조·조립')).toBeVisible()
-    await expect(chipRow).not.toContainText('제품개발')
-    await expect(chipRow).not.toContainText('연구')
+    await expect(chipRow.getByText('식품 연구개발')).toBeVisible()
 
     await page.getByRole('button', { name: /전북 데모 프로필로 시작/ }).click()
     const profileText = await page.getByText('전북 청년 데모 사용자').locator('..').innerText()
-    expect(profileText).toContain('제조·조립')
-    expect(profileText).not.toContain('제품개발')
+    expect(profileText).toContain('식품 연구개발')
 
     const list = page.getByTestId('capital-posting-list')
     await expect(list.getByRole('listitem').first()).toBeVisible({ timeout: 10000 })
-    const listText = await list.innerText()
-    expect(listText).toContain('생산직')
-    expect(listText).not.toMatch(/제품개발|연구원|연구개발/)
+    const firstPosting = list.getByRole('listitem').first()
+    await expect(firstPosting).toContainText('주식회사누리지에프에스')
+    await expect(firstPosting).toContainText('식품공학 기술자 및 연구원')
+
+    await firstPosting.getByRole('button', { name: /지역 비교/ }).click()
+    const panel = page.getByTestId('jeonbuk-comparison-panel')
+    await expect(panel.getByText('(주)참고을 지평선 제2공장')).toBeVisible()
+    await expect(panel.getByText(/식품공학 기술자 및 연구원/).first()).toBeVisible()
   })
 })

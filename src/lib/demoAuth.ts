@@ -28,7 +28,7 @@ export const DEMO_PROFILE: DemoProfile = {
   displayName: '전북 청년 데모 사용자',
   homeRegionLabel: '전북특별자치도',
   homeRegionCode: 'JEONBUK',
-  interestedOccupation: '제조·조립',
+  interestedOccupation: '식품 연구개발',
   interestedEmploymentType: '정규직',
 }
 

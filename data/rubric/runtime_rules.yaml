@@ -52,4 +52,4 @@ fields:
     relevance_keywords: ["정규직", "계약직", "인턴", "파견", "고용형태", "채용형태"]
     confirmed_rule: specific_keywords
     min_length: 2
-    specific_keywords: ["정규직", "계약직", "인턴", "파견직", "파견"]
+    specific_keywords: ["기간의 정함이 없는 근로계약", "정규직", "계약직", "인턴", "파견직", "파견"]

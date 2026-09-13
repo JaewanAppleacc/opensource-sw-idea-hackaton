@@ -4,6 +4,16 @@ Read alongside `CLAUDE.md`, `DATA_HANDOFF.md`, `TASK_REAL_DATA_ACQUISITION.md`,
 and `docs/acquisition/REAL_SOURCE_SEARCH_LOG.md`. This document is the single
 source of truth for the real-data acquisition track's status.
 
+## 2026-09-13 representative demo addition
+
+One real food R&D pair (`MET-00` ↔ `JB-00`) was added without deleting or
+relabeling the original production/assembly evaluation sample. The repository
+therefore contains 22 public metadata records and 11 pairs: the unchanged
+10:10 production/assembly sample plus one representative `식품공학 기술자 및
+연구원` pair. Its selection rationale and official source links are recorded
+in `docs/acquisition/RESEARCH_DEMO_PAIR.md`. This pair is for the primary demo
+flow and has not been human-gold labeled.
+
 ## Decision
 
 > **`MIN_SAMPLE_MET_PENDING_HUMAN_BOUNDARY_REVIEW`**
@@ -45,7 +55,7 @@ factual replacements), and the sample-level comparability review.
 | Work24 API research trail | `docs/acquisition/WORK24_API_NOTES.md` | Done — official public pages confirm the list/detail endpoints, core parameters, XML format, and detail fields; an approved key and live mapping check are still required. |
 | Source terms snapshot | `data/intake/source_terms_snapshot.yaml` | Done, dated 2026-09-12. |
 | Occupation feasibility report | `data/intake/occupation_feasibility.json` | **Updated 2026-09-12** — `"overall_status": "MIN_SAMPLE_MET_PENDING_HUMAN_BOUNDARY_REVIEW"`, `"total_real_postings_ingested": 20`, `meets_min_10_10: true`, `meets_target_20_20: false`, `human_boundary_review_completed: null` (a human must set this). |
-| Real postings / pairs JSONL | `data/intake/real_postings.jsonl`, `data/intake/real_matched_pairs.jsonl` | **Produced 2026-09-12** — 20 real postings (10 jeonbuk + 10 metro), 10 matched pairs, 0 unmatched. See `docs/acquisition/REAL_SOURCE_SEARCH_LOG.md`. |
+| Real postings / pairs JSONL | `data/intake/real_postings.jsonl`, `data/intake/real_matched_pairs.jsonl` | **Updated 2026-09-13** — 22 real postings, 11 matched pairs, 0 unmatched. The original 10:10 production/assembly sample remains unchanged; one food R&D demo pair was added. |
 | Excluded postings log | `data/intake/excluded_postings.jsonl` | **Produced 2026-09-12** — 2 postings excluded during collection for occupation mismatch, with factual reasons. |
 | Cross-domain feasibility scan + selection rationale | `docs/acquisition/REAL_SOURCE_SEARCH_LOG.md` | **Produced 2026-09-12** — 금융·경영/IT·디지털/생산·기술 raw counts, occupation selection reasoning, sample-level comparability review. |
 | Test suite | `tests/acquisition/**` (26 tests) | All passing, offline/fixture-only. |
@@ -151,7 +161,7 @@ finding — the correct status right now is exactly
 ```bash
 python -m pytest tests/acquisition -q      # 26 tests, offline/fixture-only
 python -m pytest tests/backend tests/data -q  # regression: 119 tests, unaffected
-python scripts/acquisition/measure_feasibility.py  # re-confirms 20 real postings, MIN_SAMPLE_MET_PENDING_HUMAN_BOUNDARY_REVIEW
+python scripts/acquisition/measure_feasibility.py  # re-confirms 22 real postings, MIN_SAMPLE_MET_PENDING_HUMAN_BOUNDARY_REVIEW
 ```
 
 Also spot-checked manually this pass (not scripted): every public record in

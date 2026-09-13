@@ -8,3 +8,4 @@
 {"matched_pair_id": "P-REAL-008", "jeonbuk_posting_id": "JB-08", "metro_posting_id": "MET-08", "occupation": "생산직(제조 조립원)", "employment_type": "정규직", "match_criteria": "occupation=생산직(제조 조립원); employment_type=정규직; source_name=고용24/고용24"}
 {"matched_pair_id": "P-REAL-009", "jeonbuk_posting_id": "JB-09", "metro_posting_id": "MET-09", "occupation": "생산직(제조 조립원)", "employment_type": "정규직", "match_criteria": "occupation=생산직(제조 조립원); employment_type=정규직; source_name=고용24/고용24"}
 {"matched_pair_id": "P-REAL-010", "jeonbuk_posting_id": "JB-10", "metro_posting_id": "MET-10", "occupation": "생산직(제조 조립원)", "employment_type": "정규직", "match_criteria": "occupation=생산직(제조 조립원); employment_type=정규직; source_name=고용24/고용24"}
+{"matched_pair_id": "P-REAL-011", "jeonbuk_posting_id": "JB-00", "metro_posting_id": "MET-00", "occupation": "식품공학 기술자 및 연구원", "employment_type": "정규직", "match_criteria": "occupation=식품공학 기술자 및 연구원; employment_type=정규직; source_name=고용24/고용24"}

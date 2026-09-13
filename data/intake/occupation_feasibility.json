@@ -1,6 +1,6 @@
 {
-  "measured_date": "2026-09-12",
-  "total_real_postings_ingested": 20,
+  "measured_date": "2026-09-13",
+  "total_real_postings_ingested": 22,
   "candidates": [
     {
       "occupation": "생산직(제조 조립원)",
@@ -21,6 +21,28 @@
         ]
       },
       "meets_min_10_10": true,
+      "meets_target_20_20": false,
+      "human_boundary_review_completed": null
+    },
+    {
+      "occupation": "식품공학 기술자 및 연구원",
+      "employment_type": "정규직",
+      "jeonbuk_count": 1,
+      "metro_count": 1,
+      "pairable_count": 1,
+      "full_text_sufficient_count": {
+        "jeonbuk": 1,
+        "metro": 1
+      },
+      "collection_dates": {
+        "jeonbuk": [
+          "2026-09-13"
+        ],
+        "metro": [
+          "2026-09-13"
+        ]
+      },
+      "meets_min_10_10": false,
       "meets_target_20_20": false,
       "human_boundary_review_completed": null
     }

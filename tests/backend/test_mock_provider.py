@@ -30,3 +30,10 @@ def test_mock_provider_reports_absent_when_no_anchor_found():
     assert statuses["salary"] == "absent"
     assert statuses["probation_terms"] == "absent"
     assert statuses["training_or_mentoring"] == "absent"
+
+
+def test_mock_provider_normalizes_official_work24_open_ended_contract_label():
+    source = "고용형태: 기간의 정함이 없는 근로계약"
+    raw = MockExtractionProvider().extract(source)
+
+    assert raw["employment_type"] == "정규직"

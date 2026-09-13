@@ -8,8 +8,8 @@ behavior changes.
 
 `find_home_region_matches` returns up to three home-region comparison
 candidates for one capital-area posting: postings with the same normalized
-occupation and employment_type as the query, from the current real 10:10
-batch. The order is a deterministic display order, not a similarity
+occupation and employment_type as the query, from the current real posting
+sample. The order is a deterministic display order, not a similarity
 ranking -- the acquisition track's pre-linked pair
 (`data/intake/real_matched_pairs.jsonl`) comes first when it exists and
 still qualifies, then any other same-group home-region postings follow in
@@ -40,7 +40,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 MAX_HOME_REGION_CANDIDATES = 3
 
 REAL_DATASET_DESCRIPTION = (
-    "These comparison postings come from a real 10:10 MVP dataset (see REAL_DATA_ACQUISITION_HANDOFF.md). "
+    "These comparison postings come from a real Work24 MVP sample (see REAL_DATA_ACQUISITION_HANDOFF.md). "
     "The first candidate is the pre-linked record, followed by other home-region postings with the same "
     "normalized occupation and employment type in deterministic collection order. The order is not a "
     "similarity ranking, and the candidates are not claimed to be the best or only local alternatives, nor "

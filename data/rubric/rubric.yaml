@@ -123,6 +123,7 @@ fields:
       criteria: "Names a specific employment type (정규직, 계약직(기간), 인턴 등)."
       positive_examples:
         - "정규직 채용"
+        - "기간의 정함이 없는 근로계약"
         - "계약직(1년, 이후 정규직 전환 가능)"
     vague:
       criteria: "Says employment type will be decided later or depends on the interview, without naming an option."

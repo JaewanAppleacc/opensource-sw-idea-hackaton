@@ -7,8 +7,8 @@
 #
 # Checked: 2026-09-12 (see docs/data/METHODOLOGY.md for the research trail).
 
-inventory_version: "1.1.1"
-checked_date: "2026-09-12"
+inventory_version: "1.2.0"
+checked_date: "2026-09-13"
 
 sources:
   - source_name: "고용24 채용정보 Open API (한국고용정보원)"
@@ -52,10 +52,10 @@ sources:
       scripts/acquisition/manual_intake.py.
     license_terms_status: "Case-by-case per posting via the required `redistribution_permission` (yes/no/unknown) field. `unknown`/`no` keep the full text out of the public data/intake/real_postings.jsonl entirely (private-only, in data/private/intake_raw/, gitignored); only `yes` allows the public record to carry full_text. All 20 records ingested 2026-09-12 are `unknown` — 고용24's own detail-service page requires attribution/backlink and states unauthorized reproduction is prohibited, and no approved-use terms have been separately confirmed, so redistribution defaults to unknown, not assumed."
     date_range: "Depends on when each batch is supplied; recorded per-record as a real `collection_date`. All 20 records ingested 2026-09-12 were also viewed/collected on 2026-09-12 (same-day collection, within the 30-day window fixed in docs/acquisition/REAL_SOURCE_SEARCH_LOG.md)."
-    jeonbuk_count_by_occupation: "10 real postings ingested 2026-09-12 for 생산직(제조 조립원)/정규직 (JB-01..JB-10). See docs/acquisition/REAL_SOURCE_SEARCH_LOG.md for the full feasibility scan across all three domains and REAL_DATA_ACQUISITION_HANDOFF.md for status."
-    metro_count: "10 real postings ingested 2026-09-12 for the same occupation/employment_type, region_group=metro (서울/인천/경기; all 10 ended up in 인천 or 경기 — see REAL_SOURCE_SEARCH_LOG.md comparability notes) (MET-01..MET-10)."
-    employment_type_availability: "Recorded per-record from the human-supplied header. All 20 real records ingested 2026-09-12 are 정규직, filtered at collection time via 고용24's own '기간의 정함이 없는 근로계약' employment-type facet (not just the broader 상용직 status facet)."
-    full_text_redistributable: "Per-record, from redistribution_permission; all 20 real records are `unknown` as of 2026-09-12 pending an explicit terms re-check, so data/intake/real_postings.jsonl carries full_text: null for all of them and the real text lives only in the gitignored data/private/intake_raw/."
+    jeonbuk_count_by_occupation: "10 real postings ingested 2026-09-12 for 생산직(제조 조립원)/정규직 (JB-01..JB-10), plus one representative 식품공학 기술자 및 연구원/정규직 demo posting (JB-00) ingested 2026-09-13."
+    metro_count: "10 real production/assembly postings ingested 2026-09-12 (MET-01..MET-10), plus one representative food R&D posting (MET-00) ingested 2026-09-13."
+    employment_type_availability: "Recorded per-record from the human-supplied header. All 22 records are 정규직, based on 고용24's official '기간의 정함이 없는 근로계약' label."
+    full_text_redistributable: "Per-record, from redistribution_permission; all 22 real records are `unknown` pending an explicit terms re-check, so public full_text remains null and the real text lives only in the gitignored private intake directory."
     blockers:
       - "None for ingestion itself — 10:10 real postings for 생산직(제조 조립원)/정규직 are now ingested (2026-09-12). Two humans have not yet independently annotated them and no human has confirmed the duties/tools_or_skills boundary judgeability check (human_boundary_review_completed is null in data/intake/occupation_feasibility.json by design) — see REAL_DATA_ACQUISITION_HANDOFF.md for the exact remaining steps."
     status: "min_sample_ingested_pending_human_review"
