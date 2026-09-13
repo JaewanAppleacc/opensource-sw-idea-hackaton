@@ -1,7 +1,14 @@
-import { ChevronDown, HelpCircle, Quote } from 'lucide-react'
+import { AlertTriangle, ChevronDown, HelpCircle, Quote } from 'lucide-react'
 import { useState } from 'react'
 import type { FieldStatus } from '../../../lib/apiClient'
-import { AXIS_ORDER, NOT_EVALUATED_LABEL, type AxisId, type AxisResult, type AxisSubItemResult } from '../../../lib/comparisonAxes'
+import {
+  AXIS_ORDER,
+  NOT_EVALUATED_LABEL,
+  STRUCTURED_ABSENT_LABEL,
+  type AxisId,
+  type AxisResult,
+  type AxisSubItemResult,
+} from '../../../lib/comparisonAxes'
 import { CHANNEL_LABELS, STATUS_LABELS } from '../../../lib/displayLabels'
 import { ImportantConditionsSelector } from '../ImportantConditionsSelector'
 
@@ -15,10 +22,21 @@ const NOT_EVALUATED_STYLE = 'border border-dashed border-ink-border bg-white tex
 /** One collapsible sub-item row -- status + one-line label always visible;
  * the original evidence quote and any verification question only render
  * once the user clicks to expand (TASK "단계형 리포트 모달" section 2: "각
- * 항목을 클릭했을 때만 원문 근거가 펼쳐지게"). */
+ * 항목을 클릭했을 때만 원문 근거가 펼쳐지게").
+ *
+ * `item.sourceField === null` covers every sub-item with no backing
+ * AuditedField -- not_evaluated, structured_absent, and the Work24
+ * registry-confirmed 근로시간 case alike -- and renders `notEvaluatedMessage`
+ * as plain display text instead of a quoted evidence span (TASK "Work24
+ * Structured Data + sLLM Hybrid Audit Pipeline" section 6). A small source
+ * label ("고용24 등록 정보" / "공고 본문 분석") is shown for every sub-item
+ * that has one -- never developer terms like SLM/LLM/JSON (TASK section 7).
+ */
 function SubItemRow({ item }: { item: AxisSubItemResult }) {
   const [open, setOpen] = useState(false)
+  const hasNoBackingField = item.sourceField === null
   const isNotEvaluated = item.displayStatus === 'not_evaluated'
+  const isStructuredAbsent = item.displayStatus === 'structured_absent'
   return (
     <div className="border-t border-ink-border pt-2 first:border-t-0 first:pt-0">
       <button
@@ -33,13 +51,23 @@ function SubItemRow({ item }: { item: AxisSubItemResult }) {
             <span className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium ${NOT_EVALUATED_STYLE}`}>
               {NOT_EVALUATED_LABEL}
             </span>
+          ) : isStructuredAbsent ? (
+            <span className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium ${NOT_EVALUATED_STYLE}`}>
+              {STRUCTURED_ABSENT_LABEL}
+            </span>
           ) : (
             item.displayStatus &&
-            item.displayStatus !== 'not_evaluated' && (
+            item.displayStatus !== 'not_evaluated' &&
+            item.displayStatus !== 'structured_absent' && (
               <span className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLES[item.displayStatus]}`}>
                 {STATUS_LABELS[item.displayStatus]}
               </span>
             )
+          )}
+          {item.sourceLabel && (
+            <span className="rounded-pill bg-surface-muted px-1.5 py-0.5 text-[10px] text-ink-400">
+              {item.sourceLabel}
+            </span>
           )}
         </span>
         <ChevronDown
@@ -51,7 +79,7 @@ function SubItemRow({ item }: { item: AxisSubItemResult }) {
       {open && (
         <div className="mt-1.5 pl-0.5">
           <p className="text-xs text-ink-700">
-            {isNotEvaluated ? (
+            {hasNoBackingField ? (
               <span className="text-ink-400">{item.notEvaluatedMessage}</span>
             ) : item.audited?.evidence ? (
               <span className="flex items-start gap-1 text-ink-700">
@@ -62,6 +90,12 @@ function SubItemRow({ item }: { item: AxisSubItemResult }) {
               <span className="text-ink-400">근거 문구 없음</span>
             )}
           </p>
+          {item.conflictMessage && (
+            <p className="mt-1 flex items-start gap-1 rounded-card border border-amber-200 bg-amber-50 p-1.5 text-[11px] text-amber-800">
+              <AlertTriangle size={11} aria-hidden="true" className="mt-0.5 shrink-0 text-amber-600" />
+              <span>{item.conflictMessage}</span>
+            </p>
+          )}
           {item.action && (
             <p className="mt-1 flex items-start gap-1 rounded-card bg-surface-muted p-1.5 text-[11px] text-ink-500">
               <HelpCircle size={11} aria-hidden="true" className="mt-0.5 shrink-0 text-brand-blue" />

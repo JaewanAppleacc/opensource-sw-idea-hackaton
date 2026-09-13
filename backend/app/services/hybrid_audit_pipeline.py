@@ -1,10 +1,15 @@
-"""Orchestrates: extraction -> schema validation -> evidence validation ->
-deterministic field rules -> verification actions.
+"""Hybrid audit pipeline: `salary`/`employment_type` come deterministically
+from a `Work24StructuredPosting` record; `duties`/`tools_or_skills`/
+`training_or_mentoring`/`probation_terms` come from an sLLM provider's
+free-text extraction, validated by the exact same Evidence Harness as the
+existing pipeline (TASK "Work24 Structured Data + sLLM Hybrid Audit
+Pipeline").
 
-Provider or schema/evidence failures are never downgraded into a posting
-status. A field's status is only ever downgraded (confirmed -> vague,
-vague/confirmed -> absent) by an explicit, rubric-driven deterministic rule
-in app.rules.field_rules -- never upgraded, and never invented.
+This is an *additive* pipeline, not a replacement: `app.services.
+audit_pipeline.analyze_posting` (the existing 6-field, provider-only path)
+is untouched and still used for every posting_id that has no
+Work24StructuredPosting record (see `app.api.v1.postings.analyze_by_id`,
+which chooses between the two).
 """
 from __future__ import annotations
 
@@ -14,41 +19,52 @@ from pydantic import ValidationError
 
 from ..errors import AnalysisFailedError
 from ..models.posting import AuditedField, PostingAnalysis, PostingInput, ValidationWarning, VerificationAction
-from ..providers.base import ExtractionProvider
-from ..providers.raw import RawExtraction
+from ..models.work24_structured import Work24StructuredPosting
+from ..providers.base import FreeTextExtractionProvider
+from ..providers.raw import RawFreeTextExtraction
 from ..rules.field_rules import evaluate_confirmed
+from .conflict_detection import detect_salary_conflict
 from .evidence import EvidenceMismatchError, validate_evidence_span
+from .structured_fields import build_employment_type_field, build_salary_field, build_work_hours_info
 from .verification import build_verification_action
 
-MAX_ATTEMPTS = 2  # one initial attempt + at most one retry
+MAX_ATTEMPTS = 2  # one initial attempt + at most one retry -- same budget as the legacy pipeline
 
 
-def analyze_posting(posting: PostingInput, provider: ExtractionProvider) -> PostingAnalysis:
-    validated: Optional[RawExtraction] = None
+def _run_free_text_extraction(
+    source_text: str, expected_occupation: Optional[str], provider: FreeTextExtractionProvider
+) -> RawFreeTextExtraction:
     last_error: Optional[Exception] = None
-
     for _attempt in range(MAX_ATTEMPTS):
-        raw = provider.extract(posting.source_text, posting.expected_occupation)
+        raw = provider.extract_free_text(source_text, expected_occupation)
         try:
-            candidate = RawExtraction.model_validate(raw)
+            candidate = RawFreeTextExtraction.model_validate(raw)
             for raw_field in candidate.fields:
                 if raw_field.evidence_text is not None:
-                    validate_evidence_span(
-                        posting.source_text, raw_field.evidence_text, raw_field.start, raw_field.end
-                    )
+                    validate_evidence_span(source_text, raw_field.evidence_text, raw_field.start, raw_field.end)
         except (ValidationError, EvidenceMismatchError) as exc:
             last_error = exc
             continue
-        validated = candidate
-        break
+        return candidate
 
-    if validated is None:
-        raise AnalysisFailedError(
-            "structured extraction failed schema or evidence validation after one retry",
-            details={"last_error": str(last_error)} if last_error else None,
-        )
+    raise AnalysisFailedError(
+        "hybrid free-text extraction failed schema or evidence validation after one retry",
+        details={"last_error": str(last_error)} if last_error else None,
+    )
 
-    fields: Dict[str, AuditedField] = {}
+
+def analyze_posting_hybrid(
+    posting: PostingInput,
+    structured: Work24StructuredPosting,
+    provider: FreeTextExtractionProvider,
+) -> PostingAnalysis:
+    fields: Dict[str, AuditedField] = {
+        "salary": build_salary_field(structured),
+        "employment_type": build_employment_type_field(structured),
+    }
+
+    validated = _run_free_text_extraction(posting.source_text, posting.expected_occupation, provider)
+
     warnings: List[ValidationWarning] = []
     actions: List[VerificationAction] = []
 
@@ -92,22 +108,24 @@ def analyze_posting(posting: PostingInput, provider: ExtractionProvider) -> Post
             status=final_status,
             evidence=evidence,
             reason_code=reason_code,
-            # This pipeline only ever extracts from the free-form posting
-            # text via a provider (mock/anthropic/nvidia) -- never from a
-            # Work24StructuredPosting record. See
-            # app.services.hybrid_audit_pipeline for the path that mixes in
-            # WORK24_STRUCTURED fields.
             provenance="SLM_EXTRACTED",
         )
-        if final_status in ("vague", "absent"):
-            actions.append(build_verification_action(raw_field.field, final_status))
+
+    for field_name, audited in fields.items():
+        if audited.status in ("vague", "absent"):
+            actions.append(build_verification_action(field_name, audited.status))
+
+    conflict_warning = detect_salary_conflict(posting.source_text, structured)
+    if conflict_warning is not None:
+        warnings.append(conflict_warning)
 
     return PostingAnalysis(
         posting_id=posting.posting_id,
-        occupation=validated.occupation or posting.expected_occupation,
-        employment_type=validated.employment_type,
+        occupation=structured.occupation_name or posting.expected_occupation,
+        employment_type=structured.employment_type,
         fields=fields,
         verification_actions=actions,
         validation_warnings=warnings,
         external_context=[],
+        work_hours=build_work_hours_info(structured),
     )

@@ -181,7 +181,7 @@
           "postings"
         ],
         "summary": "Analyze By Id",
-        "description": "Resolves posting_id -> private full text server-side (never returned\nto the client raw) and runs it through the exact same analyze_posting()\npipeline as /postings/analyze. Raises PrivateDataUnavailableError (503)\nif this machine has no private copy for posting_id right now.",
+        "description": "Resolves posting_id -> private full text server-side (never returned\nto the client raw), then picks one of two pipelines:\n\n  - A `Work24StructuredPosting` fixture exists for this posting_id ->\n    the hybrid pipeline (`analyze_posting_hybrid`): salary/employment_type\n    come deterministically from that record, the remaining four fields\n    from an sLLM's free-text extraction.\n  - No such record exists (every posting outside the current tiny\n    research-persona demo set) -> the exact same\n    `analyze_posting()` six-field pipeline as /postings/analyze,\n    completely unchanged from before this feature existed.\n\nRaises PrivateDataUnavailableError (503) if this machine has no private\ncopy for posting_id right now, in either case.",
         "operationId": "analyze_by_id_api_v1_postings_analyze_by_id_post",
         "requestBody": {
           "content": {
@@ -385,6 +385,16 @@
             "minLength": 1,
             "title": "Reason Code",
             "description": "Deterministic rule code explaining the status decision."
+          },
+          "provenance": {
+            "type": "string",
+            "enum": [
+              "WORK24_STRUCTURED",
+              "SLM_EXTRACTED",
+              "USER_REPORTED"
+            ],
+            "title": "Provenance",
+            "description": "Where this field's value actually came from: WORK24_STRUCTURED (고용24 등록 정보, deterministic, never LLM-touched), SLM_EXTRACTED (공고 본문 자유서술을 분석), or USER_REPORTED (not produced anywhere yet)."
           }
         },
         "additionalProperties": false,
@@ -392,7 +402,8 @@
         "required": [
           "field",
           "status",
-          "reason_code"
+          "reason_code",
+          "provenance"
         ],
         "title": "AuditedField"
       },
@@ -1141,6 +1152,17 @@
             },
             "type": "array",
             "title": "External Context"
+          },
+          "work_hours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkHoursInfo"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "근로시간·교대제, sourced only from a Work24StructuredPosting record -- never from an LLM. None means no such record exists for this posting (unchanged 'not_evaluated' MVP-scope behavior); see WorkHoursInfo.status for the distinction between 'confirmed' and 'structured_absent'."
           }
         },
         "additionalProperties": false,
@@ -1436,6 +1458,64 @@
           "triggered_by_status"
         ],
         "title": "VerificationAction"
+      },
+      "WorkHoursInfo": {
+        "properties": {
+          "weekly_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekly Hours"
+          },
+          "detailed_work_hours": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detailed Work Hours"
+          },
+          "shift_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shift Type"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "structured_absent"
+            ],
+            "title": "Status"
+          },
+          "provenance": {
+            "type": "string",
+            "const": "WORK24_STRUCTURED",
+            "title": "Provenance",
+            "default": "WORK24_STRUCTURED"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "WorkHoursInfo",
+        "description": "Presentation-ready 근로시간·교대제 info, sourced *only* from\n`Work24StructuredPosting` -- never from an LLM/sLLM, never estimated.\n\n`status`:\n  - \"confirmed\": at least one of weekly_hours/detailed_work_hours/\n    shift_type is present on the structured record.\n  - \"structured_absent\": a Work24StructuredPosting record exists for\n    this posting_id, but none of those three sub-fields are stated on\n    it. Frontend must render this as \"고용24 등록 정보에서 확인되지\n    않음\" -- never \"확인 불가\" (that phrase is reserved for the\n    evidence-harness vague/absent flow, which this is not).\n\n`PostingAnalysis.work_hours is None` (the field is simply absent from\nthe response) is the *third*, different case: no Work24StructuredPosting\nrecord exists for this posting_id at all. The frontend keeps showing\n`not_evaluated` for that case, unchanged from before this feature."
       }
     }
   }

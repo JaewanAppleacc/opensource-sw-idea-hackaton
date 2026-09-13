@@ -46,3 +46,42 @@ class RawExtraction(BaseModel):
         if sorted(names) != sorted(FIELD_NAMES):
             raise ValueError("extraction must contain exactly the six audited fields, each exactly once")
         return self
+
+
+# The four free-text fields an sLLM provider is ever allowed to see in the
+# hybrid pipeline (TASK "Work24 Structured Data + sLLM Hybrid Audit
+# Pipeline" section 3) -- salary and employment_type are handled
+# deterministically from Work24StructuredPosting and are never sent to any
+# provider on this path.
+FREE_TEXT_FIELD_NAMES: tuple[FieldName, ...] = (
+    "duties",
+    "tools_or_skills",
+    "training_or_mentoring",
+    "probation_terms",
+)
+
+
+class RawFreeTextExtraction(BaseModel):
+    """Restricted extraction schema for the hybrid pipeline's sLLM call.
+
+    Harness rule #8 ("외부 모델이 생성한 추가 필드 차단"): `extra="forbid"`
+    on `RawAuditedField` already blocks unknown keys per field, and this
+    validator additionally rejects `salary`/`employment_type` (or any field
+    outside the four free-text ones) appearing at all -- a provider that
+    tries to also report structured fields is a schema violation, not a
+    silently-ignored extra.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    fields: List[RawAuditedField]
+
+    @model_validator(mode="after")
+    def _check_four_free_text_fields_only(self) -> "RawFreeTextExtraction":
+        names = [f.field for f in self.fields]
+        if sorted(names) != sorted(FREE_TEXT_FIELD_NAMES):
+            raise ValueError(
+                "hybrid free-text extraction must contain exactly the four free-text "
+                f"fields {FREE_TEXT_FIELD_NAMES}, each exactly once -- never salary or employment_type"
+            )
+        return self

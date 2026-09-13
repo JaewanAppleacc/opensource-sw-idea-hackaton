@@ -2,10 +2,30 @@ from __future__ import annotations
 
 from ..errors import ProviderUnavailableError
 from ..config import get_settings
-from .base import ExtractionProvider
+from .base import ExtractionProvider, FreeTextExtractionProvider
 from .mock_provider import MockExtractionProvider
 
 SUPPORTED_PROVIDERS = ("mock", "anthropic", "nvidia")
+SUPPORTED_HYBRID_SLM_PROVIDERS = ("mock", "nvidia_gpt_oss")
+
+
+def get_free_text_provider() -> FreeTextExtractionProvider:
+    """Provider for the hybrid pipeline's four-field sLLM step only --
+    entirely independent of `get_provider()`/LLM_PROVIDER above, which is
+    the legacy six-field path. Fails closed on an unrecognized
+    HYBRID_SLM_PROVIDER value, same reasoning as `get_provider()`.
+    """
+    settings = get_settings()
+    if settings.hybrid_slm_provider == "mock":
+        return MockExtractionProvider()
+    if settings.hybrid_slm_provider == "nvidia_gpt_oss":
+        from .gpt_oss_provider import GptOssFreeTextProvider
+
+        return GptOssFreeTextProvider(model=settings.gpt_oss_model)
+    raise ProviderUnavailableError(
+        f"unknown HYBRID_SLM_PROVIDER: {settings.hybrid_slm_provider!r} "
+        f"(expected one of: {', '.join(SUPPORTED_HYBRID_SLM_PROVIDERS)})"
+    )
 
 
 def get_provider() -> ExtractionProvider:

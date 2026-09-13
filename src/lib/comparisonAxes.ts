@@ -18,15 +18,37 @@
  * so `not_evaluated` items are structurally excluded from "미확인 정보
  * 우선순위", from any absent-count, and from any posting-quality judgment.
  */
-import type { AuditedField, FieldName, FieldStatus, PostingAnalysis, VerificationAction } from './apiClient'
+import type { AuditedField, FieldName, FieldStatus, PostingAnalysis, Provenance, VerificationAction } from './apiClient'
 
 /** `FieldStatus` is the backend's closed three-value enum and must never
  * gain a fourth value (see CLAUDE.md: no `external_verified`, ever). This
- * adds a UI-only fourth state purely for axes/sub-items that have no
- * backing atomic field -- it never appears in any backend contract type. */
-export type AxisDisplayStatus = FieldStatus | 'not_evaluated'
+ * adds UI-only extra states purely for axes/sub-items that have no backing
+ * atomic field, or that come from the Work24 registry rather than any
+ * evidence-harness evaluation -- neither ever appears in any backend
+ * contract type. */
+export type AxisDisplayStatus = FieldStatus | 'not_evaluated' | 'structured_absent'
 
 export const NOT_EVALUATED_LABEL = '현재 MVP 분석 미지원'
+
+/** TASK "Work24 Structured Data + sLLM Hybrid Audit Pipeline" section 6:
+ * a Work24StructuredPosting record exists for this posting, but it states
+ * none of weekly_hours/detailed_work_hours/shift_type -- distinct from
+ * `NOT_EVALUATED_LABEL` (no registry record exists at all) and from the
+ * evidence-harness "확인 불가" phrasing (this was never sent to an sLLM). */
+export const STRUCTURED_ABSENT_LABEL = '고용24 등록 정보에서 확인되지 않음'
+
+/** TASK section 7: "각 정보에 작은 출처 라벨을 표시한다... SLM, LLM, JSON,
+ * Pydantic 같은 개발자 용어는 일반 사용자 화면에 크게 노출하지 않는다." Never
+ * shown for USER_REPORTED (nothing produces it yet). */
+export const SOURCE_LABELS: Record<Provenance, string> = {
+  WORK24_STRUCTURED: '고용24 등록 정보',
+  SLM_EXTRACTED: '공고 본문 분석',
+  USER_REPORTED: '지원자 응답',
+}
+
+/** TASK section 7: shown whenever the Harness flags a structured/text
+ * salary mismatch (`validation_warnings[].code === 'structured_text_conflict'`). */
+export const CONFLICT_MESSAGE = '등록 정보와 공고 본문의 표현이 다릅니다. 지원 전 기업에 확인하세요.'
 
 export type AxisId =
   | 'compensation'
@@ -83,8 +105,14 @@ export interface AxisSubItemResult {
   /** `undefined` only for the (unreached in practice) case where the
    * backend's response omits this field entirely from `analysis.fields`. */
   displayStatus: AxisDisplayStatus | undefined
-  /** Set only when `displayStatus === 'not_evaluated'`. */
+  /** Set only when `displayStatus` is `'not_evaluated'` or `'structured_absent'`. */
   notEvaluatedMessage?: string
+  /** "고용24 등록 정보" / "공고 본문 분석" -- never shown for a `not_evaluated`
+   * sub-item (there is no source, real or structured, to label). */
+  sourceLabel?: string
+  /** Set when the Harness flagged a structured-vs-text mismatch for this
+   * field (`validation_warnings[].code === 'structured_text_conflict'`). */
+  conflictMessage?: string
 }
 
 export interface AxisResult {
@@ -101,6 +129,13 @@ function findAction(analysis: PostingAnalysis, field: FieldName): VerificationAc
   return analysis.verification_actions.find((a) => a.field === field) ?? null
 }
 
+function findConflictMessage(analysis: PostingAnalysis, field: FieldName): string | undefined {
+  const hasConflict = analysis.validation_warnings.some(
+    (w) => w.code === 'structured_text_conflict' && w.field === field,
+  )
+  return hasConflict ? CONFLICT_MESSAGE : undefined
+}
+
 /** A sub-item backed by a real atomic field: status/evidence/action all
  * come straight from the backend response, never invented here. */
 function realSubItem(analysis: PostingAnalysis, field: FieldName, subLabel: string): AxisSubItemResult {
@@ -111,6 +146,8 @@ function realSubItem(analysis: PostingAnalysis, field: FieldName, subLabel: stri
     audited,
     action: findAction(analysis, field),
     displayStatus: audited?.status,
+    sourceLabel: audited ? SOURCE_LABELS[audited.provenance] : undefined,
+    conflictMessage: findConflictMessage(analysis, field),
   }
 }
 
@@ -125,6 +162,50 @@ function notEvaluatedSubItem(subLabel: string, message: string): AxisSubItemResu
     action: null,
     displayStatus: 'not_evaluated',
     notEvaluatedMessage: message,
+  }
+}
+
+/** 근로시간·교대제 sub-item -- the only axis content ever sourced from
+ * `PostingAnalysis.work_hours` rather than `fields`. Three distinct display
+ * states (TASK section 6): no registry record at all (`not_evaluated`,
+ * unchanged), a record that states nothing (`structured_absent`), or a
+ * record with an actual value (`confirmed`, labeled "고용24 등록 정보").
+ * Never carries a verification action -- this was never sent to an sLLM,
+ * so there is nothing to "ask the company to clarify" in the harness sense. */
+function workHoursSubItem(analysis: PostingAnalysis): AxisSubItemResult {
+  const subLabel = '근로시간·교대제·통근'
+  const workHours = analysis.work_hours
+
+  if (!workHours) {
+    return notEvaluatedSubItem(subLabel, WORK_CONDITIONS_UNSUPPORTED_MESSAGE)
+  }
+
+  if (workHours.status === 'structured_absent') {
+    return {
+      subLabel,
+      sourceField: null,
+      audited: null,
+      action: null,
+      displayStatus: 'structured_absent',
+      notEvaluatedMessage: STRUCTURED_ABSENT_LABEL,
+      sourceLabel: SOURCE_LABELS.WORK24_STRUCTURED,
+    }
+  }
+
+  const parts = [
+    workHours.weekly_hours != null ? `주 ${workHours.weekly_hours}시간` : null,
+    workHours.detailed_work_hours,
+    workHours.shift_type,
+  ].filter((v): v is string => Boolean(v))
+
+  return {
+    subLabel,
+    sourceField: null,
+    audited: null,
+    action: null,
+    displayStatus: 'confirmed',
+    notEvaluatedMessage: parts.join(', '),
+    sourceLabel: SOURCE_LABELS.WORK24_STRUCTURED,
   }
 }
 
@@ -172,7 +253,7 @@ export function buildAxisResults(analysis: PostingAnalysis): AxisResult[] {
         return {
           id,
           label: AXIS_LABELS[id],
-          subItems: [notEvaluatedSubItem('근로시간·교대제·통근', WORK_CONDITIONS_UNSUPPORTED_MESSAGE)],
+          subItems: [workHoursSubItem(analysis)],
         }
       case 'growth_benefits':
         // 교육(training_or_mentoring)과 복지(기숙사·통근지원 등)는 서로 다른

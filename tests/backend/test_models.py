@@ -34,9 +34,21 @@ def test_absent_field_must_not_carry_evidence():
 
 
 def test_absent_field_with_no_evidence_is_valid():
-    field = AuditedField(field="salary", status="absent", evidence=None, reason_code="no_relevant_keyword")
+    field = AuditedField(
+        field="salary", status="absent", evidence=None, reason_code="no_relevant_keyword", provenance="SLM_EXTRACTED"
+    )
     assert field.status == "absent"
     assert field.evidence is None
+
+
+def test_audited_field_requires_provenance():
+    with pytest.raises(ValidationError):
+        AuditedField(field="salary", status="absent", evidence=None, reason_code="x")
+
+
+def test_audited_field_rejects_unknown_provenance():
+    with pytest.raises(ValidationError):
+        AuditedField(field="salary", status="absent", evidence=None, reason_code="x", provenance="GUESSED")
 
 
 def test_invalid_status_is_rejected():
@@ -67,7 +79,9 @@ def test_posting_input_rejects_blank_text():
 
 def test_posting_analysis_requires_all_six_fields():
     partial_fields = {
-        "salary": AuditedField(field="salary", status="absent", evidence=None, reason_code="no_relevant_keyword"),
+        "salary": AuditedField(
+            field="salary", status="absent", evidence=None, reason_code="no_relevant_keyword", provenance="SLM_EXTRACTED"
+        ),
     }
     with pytest.raises(ValidationError):
         PostingAnalysis(fields=partial_fields)
@@ -77,16 +91,17 @@ def test_posting_analysis_rejects_unknown_field_key():
     with pytest.raises(ValidationError):
         PostingAnalysis(
             fields={
-                "salary": {"field": "salary", "status": "absent", "evidence": None, "reason_code": "x"},
-                "duties": {"field": "duties", "status": "absent", "evidence": None, "reason_code": "x"},
-                "tools_or_skills": {"field": "tools_or_skills", "status": "absent", "evidence": None, "reason_code": "x"},
+                "salary": {"field": "salary", "status": "absent", "evidence": None, "reason_code": "x", "provenance": "SLM_EXTRACTED"},
+                "duties": {"field": "duties", "status": "absent", "evidence": None, "reason_code": "x", "provenance": "SLM_EXTRACTED"},
+                "tools_or_skills": {"field": "tools_or_skills", "status": "absent", "evidence": None, "reason_code": "x", "provenance": "SLM_EXTRACTED"},
                 "training_or_mentoring": {
                     "field": "training_or_mentoring",
                     "status": "absent",
                     "evidence": None,
                     "reason_code": "x",
+                    "provenance": "SLM_EXTRACTED",
                 },
-                "probation_terms": {"field": "probation_terms", "status": "absent", "evidence": None, "reason_code": "x"},
-                "not_a_real_field": {"field": "employment_type", "status": "absent", "evidence": None, "reason_code": "x"},
+                "probation_terms": {"field": "probation_terms", "status": "absent", "evidence": None, "reason_code": "x", "provenance": "SLM_EXTRACTED"},
+                "not_a_real_field": {"field": "employment_type", "status": "absent", "evidence": None, "reason_code": "x", "provenance": "SLM_EXTRACTED"},
             }
         )

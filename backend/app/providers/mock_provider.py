@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 
 from ..models.common import FIELD_NAMES
+from ..providers.raw import FREE_TEXT_FIELD_NAMES
 from ..rules.field_rules import get_field_rules
 
 _EMPLOYMENT_TYPE_KEYWORDS = [
@@ -86,3 +87,27 @@ class MockExtractionProvider:
             "employment_type": _guess_employment_type(source_text),
             "fields": fields,
         }
+
+    def extract_free_text(self, source_text: str, expected_occupation: Optional[str] = None) -> dict:
+        """Same deterministic anchor-line matching as `extract`, restricted
+        to the four free-text fields the hybrid pipeline ever sends an sLLM
+        (TASK section 3) -- never salary or employment_type."""
+        segments = _split_segments(source_text)
+        fields = []
+        for field_name in FREE_TEXT_FIELD_NAMES:
+            rules = get_field_rules(field_name)
+            match = _find_best_segment(segments, rules.anchors)
+            if match is None:
+                fields.append({"field": field_name, "status": "absent"})
+                continue
+            text, start = match
+            fields.append(
+                {
+                    "field": field_name,
+                    "status": "confirmed",
+                    "evidence_text": text,
+                    "start": start,
+                    "end": start + len(text),
+                }
+            )
+        return {"fields": fields}

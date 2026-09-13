@@ -14,17 +14,20 @@ const NOT_EVALUATED_STYLE = 'border border-dashed border-ink-border bg-white tex
 
 function SubItemRow({ item }: { item: AxisSubItemResult }) {
   const isNotEvaluated = item.displayStatus === 'not_evaluated'
+  const isStructuredAbsent = item.displayStatus === 'structured_absent'
+  const hasNoBackingField = item.sourceField === null
   return (
     <div className="border-t border-ink-border pt-2 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-xs font-semibold text-ink-700">{item.subLabel}</span>
-        {isNotEvaluated ? (
+        {isNotEvaluated || isStructuredAbsent ? (
           <span className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium ${NOT_EVALUATED_STYLE}`}>
             {NOT_EVALUATED_LABEL}
           </span>
         ) : (
           item.displayStatus &&
-          item.displayStatus !== 'not_evaluated' && (
+          item.displayStatus !== 'not_evaluated' &&
+          item.displayStatus !== 'structured_absent' && (
             <span
               className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLES[item.displayStatus]}`}
             >
@@ -34,7 +37,7 @@ function SubItemRow({ item }: { item: AxisSubItemResult }) {
         )}
       </div>
       <p className="mt-1 text-xs text-ink-700">
-        {isNotEvaluated ? (
+        {hasNoBackingField ? (
           <span className="text-ink-400">{item.notEvaluatedMessage}</span>
         ) : item.audited?.evidence ? (
           <span className="flex items-start gap-1 text-ink-700">

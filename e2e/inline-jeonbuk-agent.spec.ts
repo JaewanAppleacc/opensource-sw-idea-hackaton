@@ -63,12 +63,16 @@ test.describe('지역 기반 커리어 의사결정 에이전트 - 실제 데이
     const dialogText = await dialog.innerText()
     expect(dialogText).not.toMatch(/점수|승자|추천 점수|적합도 \d/)
 
-    // 조건 비교 단계로 이동 -> 6개 축 전부 렌더 확인
+    // 조건 비교 단계로 이동 -> 6개 축 전부 렌더 확인.
+    // ComparisonReportModal은 애니메이션 전환을 위해 6개 스텝을 전부 동시에
+    // DOM에 유지한다(비활성 스텝은 CSS로만 숨김) -- 우선순위/질문/요약 스텝도
+    // 같은 축 이름 문자열을 재사용하므로, 보이는 요소만 대상으로 걸러야
+    // strict-mode violation 없이 "현재 스텝에 실제로 보이는" 라벨을 검증한다.
     await dialog.getByRole('button', { name: '다음' }).click()
     for (const label of ['임금·보상', '고용안정성', '담당 업무와 직무 적합성', '필요 역량과 지원조건', '근로시간과 근무환경', '성장·복지 지원']) {
-      await expect(dialog.getByText(label).first()).toBeVisible()
+      await expect(dialog.getByText(label).and(page.locator(':visible')).first()).toBeVisible()
     }
-    await expect(dialog.getByText('현재 MVP 분석 미지원').first()).toBeVisible()
+    await expect(dialog.getByText('현재 MVP 분석 미지원').and(page.locator(':visible')).first()).toBeVisible()
 
     // 우선 확인할 조건 단계 -> not_evaluated 항목은 절대 나타나지 않는다.
     await dialog.getByRole('button', { name: '다음' }).click()

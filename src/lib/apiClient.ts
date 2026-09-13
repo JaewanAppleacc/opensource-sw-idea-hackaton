@@ -32,11 +32,30 @@ export interface EvidenceSpan {
   end: number
 }
 
+export type Provenance = 'WORK24_STRUCTURED' | 'SLM_EXTRACTED' | 'USER_REPORTED'
+
 export interface AuditedField {
   field: FieldName
   status: FieldStatus
   evidence: EvidenceSpan | null
   reason_code: string
+  /** Where this field's value actually came from -- WORK24_STRUCTURED
+   * (고용24 등록 정보, deterministic, never LLM-touched) or SLM_EXTRACTED
+   * (공고 본문 자유서술 분석). USER_REPORTED exists in the backend enum for a
+   * future multi-turn feature; nothing produces it yet. */
+  provenance: Provenance
+}
+
+export interface WorkHoursInfo {
+  weekly_hours: number | null
+  detailed_work_hours: string | null
+  shift_type: string | null
+  /** "confirmed": at least one sub-field is stated on the Work24 registry
+   * record. "structured_absent": a registry record exists for this
+   * posting but states none of these -- render as "고용24 등록 정보에서
+   * 확인되지 않음", never "확인 불가". */
+  status: 'confirmed' | 'structured_absent'
+  provenance: 'WORK24_STRUCTURED'
 }
 
 export type VerificationChannel = 'email' | 'phone' | 'interview' | 'document_review' | 'pre_contract'
@@ -77,6 +96,11 @@ export interface PostingAnalysis {
   verification_actions: VerificationAction[]
   validation_warnings: ValidationWarning[]
   external_context: ExternalContext[]
+  /** null means no Work24StructuredPosting record exists for this posting
+   * at all -- keep showing the existing not_evaluated MVP-scope display.
+   * Non-null means a registry record exists; see WorkHoursInfo.status for
+   * whether it actually states weekly_hours/detailed_work_hours/shift_type. */
+  work_hours: WorkHoursInfo | null
 }
 
 // ---- Matching contract (matches backend/app/models/match.py) ----

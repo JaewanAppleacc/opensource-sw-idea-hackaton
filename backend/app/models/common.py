@@ -33,6 +33,14 @@ FIELD_NAMES: tuple[FieldName, ...] = (
 # orthogonal and must never mutate a posting field's status.
 FieldStatus = Literal["confirmed", "vague", "absent"]
 
+# Where a given AuditedField's value actually came from (TASK "Work24
+# Structured Data + sLLM Hybrid Audit Pipeline" section 1). Every
+# AuditedField carries exactly one of these -- never inferred by the
+# frontend, always set by the backend at the point the value was produced.
+# USER_REPORTED exists in the enum for a future multi-turn "기업 응답 반영"
+# feature; nothing in this codebase constructs it yet.
+Provenance = Literal["WORK24_STRUCTURED", "SLM_EXTRACTED", "USER_REPORTED"]
+
 ErrorCode = Literal[
     "invalid_input",
     "analysis_failed",

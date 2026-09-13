@@ -4,8 +4,9 @@ from typing import Dict, List, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
 
-from .common import FIELD_NAMES, EvidenceSpan, FieldName, FieldStatus, StrictModel
+from .common import FIELD_NAMES, EvidenceSpan, FieldName, FieldStatus, Provenance, StrictModel
 from .external import ExternalContext
+from .work24_structured import WorkHoursInfo
 
 
 class PostingInput(StrictModel):
@@ -27,12 +28,25 @@ class AuditedField(StrictModel):
     status: FieldStatus
     evidence: Optional[EvidenceSpan] = None
     reason_code: str = Field(..., min_length=1, description="Deterministic rule code explaining the status decision.")
+    provenance: Provenance = Field(
+        ...,
+        description=(
+            "Where this field's value actually came from: WORK24_STRUCTURED "
+            "(고용24 등록 정보, deterministic, never LLM-touched), SLM_EXTRACTED "
+            "(공고 본문 자유서술을 분석), or USER_REPORTED (not produced anywhere yet)."
+        ),
+    )
 
     @model_validator(mode="after")
     def _check_evidence_matches_status(self) -> "AuditedField":
         if self.status == "absent":
             if self.evidence is not None:
                 raise ValueError("absent fields must not carry evidence")
+        elif self.provenance == "WORK24_STRUCTURED":
+            # A structured registry read has no free-text quote to cite --
+            # requiring one here would force a fabricated evidence span.
+            if self.evidence is not None:
+                raise ValueError("WORK24_STRUCTURED fields must not carry a free-text evidence span")
         elif self.evidence is None:
             raise ValueError(f"{self.status} fields require evidence")
         return self
@@ -59,6 +73,15 @@ class PostingAnalysis(StrictModel):
     verification_actions: List[VerificationAction] = Field(default_factory=list)
     validation_warnings: List[ValidationWarning] = Field(default_factory=list)
     external_context: List[ExternalContext] = Field(default_factory=list)
+    work_hours: Optional[WorkHoursInfo] = Field(
+        default=None,
+        description=(
+            "근로시간·교대제, sourced only from a Work24StructuredPosting record -- "
+            "never from an LLM. None means no such record exists for this posting "
+            "(unchanged 'not_evaluated' MVP-scope behavior); see WorkHoursInfo.status "
+            "for the distinction between 'confirmed' and 'structured_absent'."
+        ),
+    )
 
     @model_validator(mode="after")
     def _check_all_six_fields_present(self) -> "PostingAnalysis":

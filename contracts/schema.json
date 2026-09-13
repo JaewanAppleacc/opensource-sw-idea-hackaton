@@ -92,12 +92,23 @@
             "minLength": 1,
             "title": "Reason Code",
             "type": "string"
+          },
+          "provenance": {
+            "description": "Where this field's value actually came from: WORK24_STRUCTURED (고용24 등록 정보, deterministic, never LLM-touched), SLM_EXTRACTED (공고 본문 자유서술을 분석), or USER_REPORTED (not produced anywhere yet).",
+            "enum": [
+              "WORK24_STRUCTURED",
+              "SLM_EXTRACTED",
+              "USER_REPORTED"
+            ],
+            "title": "Provenance",
+            "type": "string"
           }
         },
         "required": [
           "field",
           "status",
-          "reason_code"
+          "reason_code",
+          "provenance"
         ],
         "title": "AuditedField",
         "type": "object"
@@ -264,6 +275,67 @@
         ],
         "title": "VerificationAction",
         "type": "object"
+      },
+      "WorkHoursInfo": {
+        "additionalProperties": false,
+        "description": "Presentation-ready 근로시간·교대제 info, sourced *only* from\n`Work24StructuredPosting` -- never from an LLM/sLLM, never estimated.\n\n`status`:\n  - \"confirmed\": at least one of weekly_hours/detailed_work_hours/\n    shift_type is present on the structured record.\n  - \"structured_absent\": a Work24StructuredPosting record exists for\n    this posting_id, but none of those three sub-fields are stated on\n    it. Frontend must render this as \"고용24 등록 정보에서 확인되지\n    않음\" -- never \"확인 불가\" (that phrase is reserved for the\n    evidence-harness vague/absent flow, which this is not).\n\n`PostingAnalysis.work_hours is None` (the field is simply absent from\nthe response) is the *third*, different case: no Work24StructuredPosting\nrecord exists for this posting_id at all. The frontend keeps showing\n`not_evaluated` for that case, unchanged from before this feature.",
+        "properties": {
+          "weekly_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Weekly Hours"
+          },
+          "detailed_work_hours": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detailed Work Hours"
+          },
+          "shift_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Shift Type"
+          },
+          "status": {
+            "enum": [
+              "confirmed",
+              "structured_absent"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "provenance": {
+            "const": "WORK24_STRUCTURED",
+            "default": "WORK24_STRUCTURED",
+            "title": "Provenance",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "WorkHoursInfo",
+        "type": "object"
       }
     },
     "additionalProperties": false,
@@ -341,6 +413,18 @@
         },
         "title": "External Context",
         "type": "array"
+      },
+      "work_hours": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/WorkHoursInfo"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "근로시간·교대제, sourced only from a Work24StructuredPosting record -- never from an LLM. None means no such record exists for this posting (unchanged 'not_evaluated' MVP-scope behavior); see WorkHoursInfo.status for the distinction between 'confirmed' and 'structured_absent'."
       }
     },
     "required": [
@@ -419,12 +503,23 @@
         "minLength": 1,
         "title": "Reason Code",
         "type": "string"
+      },
+      "provenance": {
+        "description": "Where this field's value actually came from: WORK24_STRUCTURED (고용24 등록 정보, deterministic, never LLM-touched), SLM_EXTRACTED (공고 본문 자유서술을 분석), or USER_REPORTED (not produced anywhere yet).",
+        "enum": [
+          "WORK24_STRUCTURED",
+          "SLM_EXTRACTED",
+          "USER_REPORTED"
+        ],
+        "title": "Provenance",
+        "type": "string"
       }
     },
     "required": [
       "field",
       "status",
-      "reason_code"
+      "reason_code",
+      "provenance"
     ],
     "title": "AuditedField",
     "type": "object"

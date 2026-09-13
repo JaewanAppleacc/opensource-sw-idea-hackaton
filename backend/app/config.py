@@ -42,6 +42,17 @@ class Settings(BaseModel):
     anthropic_model: str = "claude-sonnet-5"
     nvidia_model: str = "nvidia/llama-3.1-nemotron-70b-instruct"
     rubric_version: str = "v1"
+    # Hybrid pipeline's free-text (sLLM) step only -- independent of
+    # `llm_provider` above, which is the legacy six-field `/postings/analyze`
+    # path. Default "mock" so every demo/test runs offline; "nvidia_gpt_oss"
+    # opts into the experimental live provider (app.providers.gpt_oss_provider).
+    hybrid_slm_provider: str = "mock"
+    # Shares the NVIDIA_MODEL env var name with `nvidia_model` above (per
+    # TASK "Work24 Structured Data + sLLM Hybrid Audit Pipeline" section 4),
+    # but keeps its own, different default -- the two providers are never
+    # both in use for the same request, so this is not a real collision in
+    # practice, just two independent knobs that happen to share a name.
+    gpt_oss_model: str = "openai/gpt-oss-20b"
 
 
 @lru_cache(maxsize=1)
@@ -51,6 +62,8 @@ def get_settings() -> Settings:
         anthropic_model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5"),
         nvidia_model=os.environ.get("NVIDIA_MODEL", "nvidia/llama-3.1-nemotron-70b-instruct"),
         rubric_version=os.environ.get("RUBRIC_VERSION", "v1"),
+        hybrid_slm_provider=os.environ.get("HYBRID_SLM_PROVIDER", "mock"),
+        gpt_oss_model=os.environ.get("NVIDIA_MODEL", "openai/gpt-oss-20b"),
     )
 
 

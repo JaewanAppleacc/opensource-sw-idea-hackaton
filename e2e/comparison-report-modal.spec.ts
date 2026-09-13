@@ -56,7 +56,10 @@ test.describe('비교 리포트 모달', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toHaveAttribute('aria-modal', 'true')
     await expect(dialog).toHaveAttribute('aria-labelledby', 'comparison-report-title')
-    await expect(dialog.getByText('두 공고를 같은 기준으로 살펴봤어요')).toBeVisible()
+    // 시각적 제목(h2)만 대상으로 한다 -- ReportProgress의 sr-only aria-live
+    // 안내문("N/6단계: {제목}")도 같은 문자열을 포함하므로 getByText만 쓰면
+    // strict-mode violation이 난다.
+    await expect(dialog.getByRole('heading', { name: '두 공고를 같은 기준으로 살펴봤어요' })).toBeVisible()
     await expect(dialog.getByText('수도권 공고').first()).toBeVisible()
     await expect(dialog.getByText('전북특별자치도 후보', { exact: false })).toBeVisible()
     await expect(dialog.getByText('동일 모집직종·고용형태 그룹의 비교 공고')).toBeVisible()
@@ -74,11 +77,11 @@ test.describe('비교 리포트 모달', () => {
     await expect(dialog.getByText('1/6단계', { exact: false })).toBeAttached()
 
     await dialog.getByRole('button', { name: '다음' }).click()
-    await expect(dialog.getByText('지원 판단에 필요한 조건을 비교했어요')).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: '지원 판단에 필요한 조건을 비교했어요' })).toBeVisible()
     await expect(dialog.getByText('2/6단계', { exact: false })).toBeAttached()
 
     await dialog.getByRole('button', { name: '이전' }).click()
-    await expect(dialog.getByText('두 공고를 같은 기준으로 살펴봤어요')).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: '두 공고를 같은 기준으로 살펴봤어요' })).toBeVisible()
     await expect(dialog.getByRole('button', { name: '이전' })).toBeDisabled()
   })
 
@@ -89,10 +92,14 @@ test.describe('비교 리포트 모달', () => {
 
     const dialog = page.getByRole('dialog')
     await dialog.getByRole('button', { name: '다음' }).click() // -> conditions
+    // ComparisonReportModal은 전환 애니메이션을 위해 6개 스텝을 전부 동시에
+    // DOM에 유지한다(비활성 스텝은 CSS로만 숨김) -- 다른 스텝(우선순위·질문·
+    // 요약)도 같은 축 이름 문자열을 재사용하므로, 보이는 요소만 걸러야
+    // strict-mode violation 없이 "지금 이 스텝에 실제로 보이는" 라벨만 검증한다.
     for (const label of ['임금·보상', '고용안정성', '담당 업무와 직무 적합성', '필요 역량과 지원조건', '근로시간과 근무환경', '성장·복지 지원']) {
-      await expect(dialog.getByText(label).first()).toBeVisible()
+      await expect(dialog.getByText(label).and(page.locator(':visible')).first()).toBeVisible()
     }
-    await expect(dialog.getByText('현재 MVP 분석 미지원').first()).toBeVisible()
+    await expect(dialog.getByText('현재 MVP 분석 미지원').and(page.locator(':visible')).first()).toBeVisible()
 
     // 항목 클릭 전에는 근거 문구가 보이지 않는다 (기본 접힘).
     await expect(dialog.getByText('근거 문구 없음')).toHaveCount(0)
@@ -161,8 +168,11 @@ test.describe('비교 리포트 모달', () => {
     const dialog = page.getByRole('dialog')
 
     for (let i = 0; i < 5; i++) await dialog.getByRole('button', { name: '다음' }).click()
-    await expect(dialog.getByText('이제 무엇을 확인할지 정리됐어요')).toBeVisible()
-    await dialog.getByRole('button', { name: '리포트 닫기' }).click()
+    await expect(dialog.getByRole('heading', { name: '이제 무엇을 확인할지 정리됐어요' })).toBeVisible()
+    // 헤더의 아이콘 버튼도 같은 접근성 이름("리포트 닫기")을 쓰므로, 텍스트가
+    // 실제로 보이는 마지막 단계의 CTA 버튼만 골라야 한다 (아이콘 버튼은
+    // aria-label만 있고 텍스트 노드가 없다).
+    await dialog.locator('button', { hasText: '리포트 닫기' }).click()
     await expect(dialog).toHaveCount(0)
     await expect(candidateButton).toBeFocused()
 
@@ -178,7 +188,7 @@ test.describe('비교 리포트 모달', () => {
     test.skip(!succeeded, 'data/private/intake_raw/**가 이 머신에 없어 분석이 fail-closed로 종료됨')
 
     const dialog = page.getByRole('dialog')
-    await dialog.getByText('두 공고를 같은 기준으로 살펴봤어요').click()
+    await dialog.getByRole('heading', { name: '두 공고를 같은 기준으로 살펴봤어요' }).click()
     await expect(dialog).toBeVisible()
 
     // overlay는 dialog의 부모 -- 좌상단 모서리는 dialog 바깥일 것이다.
@@ -241,7 +251,7 @@ test.describe('비교 리포트 모달', () => {
 
     const dialog = page.getByRole('dialog')
     await dialog.getByRole('button', { name: '다음' }).click()
-    await expect(dialog.getByText('지원 판단에 필요한 조건을 비교했어요')).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: '지원 판단에 필요한 조건을 비교했어요' })).toBeVisible()
   })
 
   test('20. 백엔드 장애(fail-closed) 시 모달을 가짜 성공 상태로 열지 않는다', async ({ page }) => {
